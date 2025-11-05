@@ -7,6 +7,6 @@ def betweenness_centrality(G):
     pass
 
 if __name__ == "__main__":
-    G, all_ego_nodes, all_circles, all_features = create_complete_graph("d:\\aad\\dataset\\")
+    G, all_ego_nodes, all_circles, all_features = create_complete_graph()
     print(G)
     betweenness_centrality(G)

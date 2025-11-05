@@ -55,7 +55,7 @@ def load_node_features(filepath):
                 node_features[node_id] = features
     return node_features
 
-def create_complete_graph(dataset_path):
+def create_complete_graph(dataset_path = os.path.join("dataset")):
     """Create complete Facebook graph from all ego networks"""
     G = nx.Graph()
     all_ego_nodes = []
@@ -121,6 +121,6 @@ def create_complete_graph(dataset_path):
 if __name__ == "__main__":
     dataset_path = "d:\\aad\\dataset"
 
-    print("Loading complete Facebook graph from dataset...")
-    G, ego_nodes, circles, features = create_complete_facebook_graph(dataset_path)
+    print("Loading complete graph from dataset...")
+    G, ego_nodes, circles, features = create_complete_graph()
     print("graph", G)
