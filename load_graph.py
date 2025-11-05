@@ -1,6 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-from graph import create_complete_facebook_graph
+from graph import create_complete_graph
 import numpy as np
 import os
 import glob
@@ -92,7 +92,7 @@ def analyze_complete_graph(G, ego_nodes, circles, features):
 
 # Main execution
 if __name__ == "__main__":
-    G, all_ego_nodes, all_circles, all_features = create_complete_facebook_graph("d:\\aad\\dataset\\")
+    G, all_ego_nodes, all_circles, all_features = create_complete_graph("d:\\aad\\dataset\\")
     print(G)
     visualize_complete_graph(G, all_ego_nodes)
 
