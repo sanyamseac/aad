@@ -55,7 +55,7 @@ def load_node_features(filepath):
                 node_features[node_id] = features
     return node_features
 
-def create_complete_graph(dataset_path = os.path.join("dataset")):
+def create_complete_graph(num_files=None, dataset_path = os.path.join("dataset")):
     """Create complete Facebook graph from all ego networks"""
     G = nx.Graph()
     all_ego_nodes = []
@@ -64,6 +64,13 @@ def create_complete_graph(dataset_path = os.path.join("dataset")):
     
     # Find all ego network files
     ego_files = glob.glob(os.path.join(dataset_path, "*.edges"))
+    
+    # Sort files alphabetically by filename
+    ego_files = sorted(ego_files)
+    
+    # Select only the specified number of files if num_files is provided
+    if num_files is not None and num_files > 0:
+        ego_files = ego_files[:num_files]
     
     for ego_file in ego_files:
         # Extract ego node ID from filename
