@@ -2,22 +2,12 @@ import os
 import sys
 from collections import deque # We need a double-ended queue for an efficient BFS
 
-# This path insertion allows us to import 'graph.py' from the parent 'aad' directory
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+# Import 'graph.py' from the parent 'aad' directory
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
 def closeness_centrality(G, normalized=True):
-    """
-    Computes the closeness centrality of all nodes in a graph G.
-    This is a custom implementation that handles disconnected graphs.
-    
-    Args:
-        G (networkx.Graph): The graph.
-        normalized (bool): If True, normalize by the fraction of reachable nodes.
-        
-    Returns:
-        dict: A dictionary of nodes with their closeness centrality scores.
-    """
+    """Computes the closeness centrality for all nodes, handling disconnected graphs."""
     
     # 1. Initialize the centrality dictionary with 0.0 for all nodes
     centrality = {node: 0.0 for node in G.nodes()}
@@ -35,36 +25,34 @@ def closeness_centrality(G, normalized=True):
         # --- 3. Single-Source Shortest Path (BFS) ---
         # We run a separate BFS from each node 'u'
         
-        # Dictionary to store the distance from 'u' to 'w'
+        # 'distance' tracks the shortest path from 'u' to all other nodes
         distance = {w: -1 for w in G.nodes()}
-        distance[u] = 0 # The distance from 'u' to 'u' is 0
+        distance[u] = 0
         
-        # A queue for our BFS
+        # 'total_distance' = sum of distances to all *reachable* nodes
+        # 'reachable_nodes' = count of all *reachable* nodes
+        total_distance = 0.0
+        reachable_nodes = 0
+        
         queue = deque([u])
         
-        # This will be the sum of distances to all reachable nodes (Farness)
-        total_distance = 0.0 
-        
-        # This will be the count of nodes reachable from 'u'
-        reachable_nodes = 0  
-        
-        # Start the BFS from 'u'
+        # Start the BFS
         while queue:
-            v = queue.popleft() # Get the next node 'v' from the queue
+            v = queue.popleft()
             
-            # Iterate over all neighbors 'w' of 'v'
+            # Look at all neighbors 'w' of 'v'
             for w in G.neighbors(v):
                 
-                # Case 1: 'w' is found for the first time
-                if distance[w] == -1:
-                    distance[w] = distance[v] + 1 # Set distance
-                    queue.append(w)               # Add 'w' to the queue
+                # If 'w' hasn't been seen yet
+                if distance[w] < 0:
+                    distance[w] = distance[v] + 1
+                    queue.append(w)
                     
-                    # We have found a new reachable node
-                    total_distance += distance[w] # Add its distance to the sum
-                    reachable_nodes += 1          # Increment the count
+                    # Update our running totals for reachable nodes
+                    total_distance += distance[w]
+                    reachable_nodes += 1
                     
-        # --- 4. Calculate Closeness for Node 'u' ---
+        # --- 4. Calculate Final Score ---
         
         # If the node is isolated (or the graph is just 1 node)
         if total_distance == 0:
@@ -89,8 +77,10 @@ def closeness_centrality(G, normalized=True):
 if __name__ == "__main__":
     # Load the complete graph using the function from 'graph.py'
     print("Loading graph from dataset...")
+    # We need to find the 'dataset' folder, which is one level up from here
+    dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
     G, all_ego_nodes, all_circles, all_features = create_complete_graph(
-        dataset_path=os.path.join("dataset") # Assuming 'dataset' is in the 'aad' folder
+        dataset_path=dataset_path
     )
     print("Graph loaded:", G)
 

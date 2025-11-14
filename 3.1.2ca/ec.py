@@ -1,34 +1,23 @@
 import os
 import sys
-import math # We need math.sqrt() for normalization
+import math # math.sqrt() for normalization
 
-# This path insertion allows us to import 'graph.py' from the parent 'aad' directory
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+# Import 'graph.py' from the parent 'aad' directory
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
 def eigenvector_centrality(G, max_iter=100, tol=1.0e-6):
-    """
-    Computes the eigenvector centrality of all nodes in a graph G.
-    This is a custom implementation of the Power Iteration method.
+    """Computes the eigenvector centrality for all nodes using the Power Iteration method."""
     
-    Args:
-        G (networkx.Graph): The graph.
-        max_iter (int): Maximum number of iterations in power method.
-        tol (float): Tolerance for convergence.
-        
-    Returns:
-        dict: A dictionary of nodes with their eigenvector centrality scores.
-    """
-    
-    # 1. Handle trivial case (empty graph)
+    # 1) Handle trivial case (empty graph)
     if len(G) == 0:
         return {}
         
-    # 2. Initialize the centrality vector. Start with all nodes having a score of 1.0.
+    # 2) Initialize the centrality vector. Start with all nodes having a score of 1.0.
     # This is our initial guess, x_0
     x = {node: 1.0 for node in G.nodes()}
     
-    # 3. Start the Power Iteration
+    # 3) Start the Power Iteration
     for i in range(max_iter):
         
         # Keep a copy of the old scores to check for convergence
@@ -37,29 +26,27 @@ def eigenvector_centrality(G, max_iter=100, tol=1.0e-6):
         # This dictionary will hold the scores for the next iteration (x_{k+1})
         x_new = {node: 0.0 for node in G.nodes()}
         
-        # This will be the squared sum of the new scores, for normalization
-        norm_L2_squared = 0.0
-
-        # --- 4. Core Calculation Step ---
-        # x_new = A * x_old
-        # For each node 'v', its new score is the sum of the old scores of its neighbors
+        # This will store the sum of squares for L2 normalization
+        norm_sq = 0.0
+        
+        # --- 4. Update Scores ---
+        # This is the main matrix-vector multiplication (A * x_old)
         for v in G.nodes():
+            # Calculate the new score for node 'v'
             for u in G.neighbors(v):
+                # 'v's new score is the sum of its neighbors' *old* scores
                 x_new[v] += x_old[u]
             
-            # Add the square of the new score to our running sum
-            norm_L2_squared += x_new[v]**2
-
-        # --- 5. Normalization Step ---
-        
-        # Calculate the L2 norm (square root of the sum of squares)
-        norm = math.sqrt(norm_L2_squared)
-        
-        # Avoid division by zero if the graph has no edges (all scores are 0)
-        if norm == 0:
-            return x_new # All centralities are 0
+            # Add to the sum of squares
+            norm_sq += x_new[v]**2
             
-        # Normalize all scores in x_new
+        # --- 5. Normalize Scores ---
+        norm = math.sqrt(norm_sq)
+        if norm == 0:
+            # This handles a graph with no edges
+            return {node: 0.0 for node in G.nodes()}
+
+        # Divide all scores by the L2 norm (the "length" of the vector)
         for v in G.nodes():
             x[v] = x_new[v] / norm
             
@@ -72,7 +59,7 @@ def eigenvector_centrality(G, max_iter=100, tol=1.0e-6):
         if diff_norm_L1 < tol:
             return x # Return the converged centrality scores
             
-    # If we hit max_iter without converging, we raise an error.
+    # If we hit max_i-ter without converging, we raise an error.
     # This can happen on disconnected graphs if not handled.
     print(f"Warning: Eigenvector centrality did not converge in {max_iter} iterations.")
     return x # Return the best guess we have
@@ -80,8 +67,10 @@ def eigenvector_centrality(G, max_iter=100, tol=1.0e-6):
 if __name__ == "__main__":
     # Load the complete graph using the function from 'graph.py'
     print("Loading graph from dataset...")
+    # We need to find the 'dataset' folder, which is one level up from here
+    dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
     G, all_ego_nodes, all_circles, all_features = create_complete_graph(
-        dataset_path=os.path.join("dataset") # Assuming 'dataset' is in the 'aad' folder
+        dataset_path=dataset_path
     )
     print("Graph loaded:", G)
 

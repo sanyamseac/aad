@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
 import glob
 
 def load_ego_features(filepath):
@@ -55,12 +56,13 @@ def load_node_features(filepath):
                 node_features[node_id] = features
     return node_features
 
-def create_complete_graph(num_files=None, dataset_path = os.path.join("dataset")):
+def create_complete_graph(num_files=None, dataset_path = os.path.join(sys.path[0], 'dataset')):
     """Create complete Facebook graph from all ego networks"""
     G = nx.Graph()
     all_ego_nodes = []
     all_circles = {}
     all_features = {}
+    print("Dataset path:", dataset_path)
     
     # Find all ego network files
     ego_files = glob.glob(os.path.join(dataset_path, "*.edges"))
