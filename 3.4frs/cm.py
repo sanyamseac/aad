@@ -8,10 +8,16 @@ Course: Algorithm Analysis & Design
 Implementation: From scratch (no external algorithm libraries)
 """
 
+import os
+import sys
 import networkx as nx
 import numpy as np
 from typing import List, Tuple, Dict, Set
 import time
+
+# Import 'graph.py' from the parent 'aad' directory
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from graph import create_complete_graph
 
 
 def compute_common_neighbors_score(graph: nx.Graph, u: int, v: int) -> int:
@@ -194,18 +200,22 @@ def calculate_metrics_at_multiple_k(train_graph: nx.Graph, test_edges: List[Tupl
 
 def demo():
     """
-    Demonstration of Common Neighbors algorithm using Karate Club graph.
+    Demonstration of Common Neighbors algorithm using Facebook ego network dataset.
     Shows basic usage and evaluation metrics.
     """
     print("="*70)
     print("Common Neighbors Algorithm - Demo")
     print("="*70)
     
-    # Load sample graph
-    G = nx.karate_club_graph()
-    print(f"\nDataset: Karate Club Graph")
+    # Load the complete graph using the function from 'graph.py'
+    print("\nLoading graph from dataset...")
+    dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
+    G, all_ego_nodes, all_circles, all_features = create_complete_graph(dataset_path=dataset_path)
+    
+    print(f"\nDataset: Facebook Ego Network")
     print(f"Nodes: {G.number_of_nodes()}")
     print(f"Edges: {G.number_of_edges()}")
+    print(f"Ego nodes: {len(all_ego_nodes)}")
     
     # Get recommendations for a specific user
     node = 0
