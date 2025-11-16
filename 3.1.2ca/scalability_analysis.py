@@ -4,7 +4,7 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# 1) SETUP ---
+# --- 1. SETUP ---
 
 # Import the 4 centrality functions from your files in this folder
 from dc import degree_centrality
@@ -12,7 +12,7 @@ from bc import betweenness_centrality
 from cc import closeness_centrality
 from ec import eigenvector_centrality
 
-# Import 'graph.py' from the parent 'aad' directory
+# This path insertion allows us to import 'graph.py' from the parent 'aad' directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
@@ -44,33 +44,32 @@ def run_all_centralities(G):
     return runtimes
 
 def main():
-    # 2) SETUP GRAPH LOADING ---
+    # --- 2. SETUP GRAPH LOADING ---
     
     # Get the absolute path to the dataset folder
     dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
     
-    # Define how many graphs to test.
-    # num_files = 1 will be the smallest, num_files = 10 will be the largest
-    graph_sizes_to_test = range(1, 11)
+    # Define how many graphs to test. We'll test 10.
+    graph_sizes_to_test = range(1, 11) # This will loop from 1 to 10
     
     all_results = []
 
     print("Starting Scalability Analysis...")
 
-    # 3) LOOP AND RUN ANALYSIS ---
+    # --- 3. LOOP AND RUN ANALYSIS ---
     
     for num_files in graph_sizes_to_test:
         print(f"\n--- Analyzing Graph with {num_files} ego-network(s) ---")
         
         # Load the graph with the specified number of files
-        # We pass BOTH num_files and the correct dataset_path
+        # We MUST unpack the 4-item tuple here
         G, _, _, _ = create_complete_graph(num_files=num_files, dataset_path=dataset_path)
         
         num_nodes = G.number_of_nodes()
         num_edges = G.number_of_edges()
         
         if num_nodes == 0:
-            print("Warning: Graph is empty. Skipping.")
+            print(f"Warning: Graph for {num_files} files is empty. Skipping.")
             continue
             
         print(f"Graph loaded: {num_nodes:,} Nodes, {num_edges:,} Edges")
@@ -79,11 +78,19 @@ def main():
         runtimes = run_all_centralities(G)
         print(f"Runtimes: {runtimes}")
         
-        # Store the results
+        # Calculate the value of the theoretical complexities
+        complex_V = num_nodes
+        complex_E = num_edges
+        complex_V_VE = num_nodes * (num_nodes + num_edges)
+        
+        # Store all the results
         result_data = {
             'Num_Files': num_files,
             'Nodes': num_nodes,
             'Edges': num_edges,
+            'Complex_V': complex_V,
+            'Complex_E': complex_E,
+            'Complex_V_VE': complex_V_VE,
             'Time_Degree': runtimes['Degree'],
             'Time_Betweenness': runtimes['Betweenness'],
             'Time_Closeness': runtimes['Closeness'],
@@ -91,26 +98,30 @@ def main():
         }
         all_results.append(result_data)
 
-    # 4) CREATE RESULTS TABLE ---
+    # --- 4. CREATE RESULTS TABLE ---
     
     print("\n--- Scalability Analysis Complete ---")
     
     # Convert the list of results into a pandas DataFrame
     df = pd.DataFrame(all_results)
     
-    # Set 'Num_Files' as the index for clarity
-    df = df.set_index('Num_Files')
+    if not df.empty:
+        df = df.set_index('Num_Files')
     
-    print("Runtime Results Table:")
+    print("Runtime Results Table (with Complexity Values):")
     print(df)
     
     # Save the table to a CSV file for your report
     df.to_csv("scalability_results.csv")
     print("\nResults saved to 'scalability_results.csv'")
 
-    # 5) CREATE PLOTS ---
+    # --- 5. CREATE PLOTS (TIME vs. SIZE) ---
+    
+    if df.empty:
+        print("No data to plot. Exiting.")
+        return
 
-    print("Generating scalability plots...")
+    print("Generating Time vs. Size plots...")
 
     # Plot 1: Nodes vs. Time
     plt.figure(figsize=(12, 8))
@@ -141,6 +152,50 @@ def main():
     plt.grid(True)
     plt.savefig('scalability_vs_edges.png')
     print("Saved 'scalability_vs_edges.png'")
+    
+    # --- 6. CREATE PLOTS (TIME vs. COMPLEXITY) ---
+
+    print("Generating Time vs. Complexity plots...")
+
+    # Create a 2x2 grid for our four plots
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle('Runtime vs. Theoretical Complexity', fontsize=18)
+
+    # Plot 3: Degree Centrality (Time vs. V)
+    axes[0, 0].plot(df['Complex_V'], df['Time_Degree'], 'o-b')
+    axes[0, 0].set_title('Degree Centrality', fontsize=14)
+    axes[0, 0].set_xlabel('Theoretical Complexity: O(V)', fontsize=12)
+    axes[0, 0].set_ylabel('Time (seconds)', fontsize=12)
+    axes[0, 0].grid(True)
+
+    # Plot 4: Closeness Centrality (Time vs. V*(V+E))
+    axes[0, 1].plot(df['Complex_V_VE'], df['Time_Closeness'], '^-r')
+    axes[0, 1].set_title('Closeness Centrality', fontsize=14)
+    axes[0, 1].set_xlabel('Theoretical Complexity: O(V(V+E))', fontsize=12)
+    axes[0, 1].set_ylabel('Time (seconds)', fontsize=12)
+    axes[0, 1].grid(True)
+
+    # Plot 5: Betweenness Centrality (Time vs. V*(V+E))
+    axes[1, 0].plot(df['Complex_V_VE'], df['Time_Betweenness'], 's-g')
+    axes[1, 0].set_title('Betweenness Centrality', fontsize=14)
+    axes[1, 0].set_xlabel('Theoretical Complexity: O(V(V+E))', fontsize=12)
+    axes[1, 0].set_ylabel('Time (seconds)', fontsize=12)
+    axes[1, 0].grid(True)
+
+    # Plot 6: Eigenvector Centrality (Time vs. E)
+    # We plot against E, as O(k*E). We assume k is roughly constant.
+    axes[1, 1].plot(df['Complex_E'], df['Time_Eigenvector'], 'D-m')
+    axes[1, 1].set_title('Eigenvector Centrality', fontsize=14)
+    axes[1, 1].set_xlabel('Theoretical Complexity: O(k*E)', fontsize=12)
+    axes[1, 1].set_ylabel('Time (seconds)', fontsize=12)
+    axes[1, 1].grid(True)
+
+    # Clean up the layout
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    # Save the combined plot
+    plt.savefig('scalability_vs_complexity.png')
+    print("Saved 'scalability_vs_complexity.png'")
     
     print("\nAll analysis finished.")
 

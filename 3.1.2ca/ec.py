@@ -2,14 +2,12 @@ import os
 import sys
 import math # math.sqrt() for normalization
 
-# Import 'graph.py' from the parent 'aad' directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
 def eigenvector_centrality(G, max_iter=100, tol=1.0e-6):
     """Computes the eigenvector centrality for all nodes using the Power Iteration method."""
-    
-    # 1) Handle trivial case (empty graph)
+
     if len(G) == 0:
         return {}
         

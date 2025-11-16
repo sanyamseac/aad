@@ -1,0 +1,1 @@
+![Hello](./scalability_vs_complexity.png)
