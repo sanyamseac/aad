@@ -1,13 +1,15 @@
 # Friend Recommendation Systems – Comprehensive Analysis
 
-In this section, we analyze three classic link prediction algorithms for
-friend recommendation on the Facebook Ego Network: Common Neighbors, Jaccard
-Coefficient, and Adamic–Adar. Our goal is to compare their accuracy, runtime,
-and practical suitability for real-world social networks.
+In this section, we analyze seven link prediction algorithms for
+friend recommendation on the Facebook Ego Network: five heuristic methods
+(Common Neighbors, Jaccard Coefficient, Adamic–Adar, Preferential Attachment,
+Resource Allocation) and two embedding-based methods (DeepWalk, Node2Vec).
+Our goal is to compare their accuracy, runtime, and practical suitability for
+real-world social networks.
 
 ## 1. What are we doing in this section?
 
-We design, implement, and evaluate three graph-based friend recommendation
+We design, implement, and evaluate multiple graph-based friend recommendation
 algorithms on the complete Facebook ego-network dataset. For each algorithm,
 we:
 
@@ -20,10 +22,11 @@ we:
 
 Modern social platforms (Facebook, LinkedIn, Instagram, etc.) rely heavily on
 “People You May Know” systems. A common and robust way to build such systems is
-to treat the social network as a graph and predict missing edges. The three
-algorithms we study—Common Neighbors, Jaccard Coefficient, and Adamic–Adar—are
-standard link prediction heuristics used in real-world recommender systems and
-graph mining pipelines.
+to treat the social network as a graph and predict missing edges. The
+heuristic algorithms we study (CN, JC, AA, PA, RA) are classic link prediction
+methods used in graph mining, and the embedding-based algorithms (DeepWalk and
+Node2Vec) represent modern random-walk-based representation learning methods
+used in industry.
 
 ## 3. How are we getting our results?
 
@@ -48,17 +51,36 @@ graph mining pipelines.
 
 ## 4. Algorithms Implemented
 
-We implement three neighborhood-based link prediction algorithms:
+We implement two families of algorithms:
 
-1. **Common Neighbors (CM)** – baseline that counts mutual friends:
-    \( \text{CN}(u,v) = |N(u) \cap N(v)| \).
+### 4.1 Heuristic-based methods
+
+1. **Common Neighbors (CM)** – baseline that counts mutual friends:  
+   \( \text{CN}(u,v) = |N(u) \cap N(v)| \).
 
 2. **Jaccard Coefficient (JC)** – normalizes common neighbors by total distinct
-    neighbors:
-    \( \text{JC}(u,v) = \frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|} \).
+   neighbors:  
+   \( \text{JC}(u,v) = \frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|} \).
 
-3. **Adamic–Adar Index (AA)** – weights rare common friends more:
-    \( \text{AA}(u,v) = \sum_{w \in N(u)\cap N(v)} \frac{1}{\log(\deg(w))} \).
+3. **Adamic–Adar Index (AA)** – weights rare common friends more:  
+   \( \text{AA}(u,v) = \sum_{w \in N(u)\cap N(v)} \frac{1}{\log(\deg(w))} \).
+
+4. **Preferential Attachment (PA)** – assumes popular users attract more links:  
+   \( \text{PA}(u, v) = \deg(u) \cdot \deg(v) \).
+
+5. **Resource Allocation (RA)** – similar to AA but uses 1/deg(w) instead of
+   1/log(deg(w)):  
+   \( \text{RA}(u, v) = \sum_{w \in N(u) \cap N(v)} \frac{1}{\deg(w)} \).
+
+### 4.2 Embedding-based methods
+
+6. **DeepWalk (DW)** – runs uniform random walks on the graph and trains a
+   Word2Vec model to obtain node embeddings; link scores are cosine similarity
+   between embeddings.
+
+7. **Node2Vec (NV)** – similar to DeepWalk but uses biased (p, q)-controlled
+   random walks to interpolate between breadth-first and depth-first
+   exploration, often capturing better structural roles.
 
 ---
 
@@ -291,7 +313,7 @@ by AA and CM in F1‑score and precision.
 
 ---
 
-## 8. Comparative Analysis of All Algorithms
+## 8. Comparative Analysis of Heuristic Algorithms (AA, CM, JC)
 
 ### 8.1 Methodology
 
@@ -301,7 +323,7 @@ by AA and CM in F1‑score and precision.
 - **Metrics**: Precision, Recall, F1‑Score, runtime.
 - **k values tested**: 5, 10, 20, 50.
 
-### 8.2 Performance at k=20
+### 8.2 Performance at k=20 (heuristics)
 
 | Algorithm | Precision | Recall | F1-Score | True Positives | Runtime (s) |
 |-----------|-----------|--------|----------|----------------|-------------|
@@ -341,7 +363,7 @@ k=20: Precision=0.431, Recall=0.049, F1=0.088
 k=50: Precision=0.263, Recall=0.073, F1=0.114
 ```
 
-### 8.4 Runtime analysis
+### 8.4 Runtime analysis (heuristics)
 
 **Average Runtime (seconds) across all k values:**
 
@@ -362,7 +384,58 @@ about ~7% additional runtime. JC is both slower and less accurate.
 
 ---
 
-## 9. Steps to Reproduce
+## 9. Embedding-based Methods: DeepWalk and Node2Vec
+
+### 9.1 How they work (high level)
+
+- **DeepWalk**:
+   - Perform many uniform random walks on the graph.
+   - Treat each walk as a sentence and each node as a word.
+   - Train a skip-gram Word2Vec model to learn an embedding for each node.
+   - Score potential links by cosine similarity between node embeddings.
+
+- **Node2Vec**:
+   - Uses the same Word2Vec training, but changes how walks are generated.
+   - Biased random walks controlled by parameters \(p\) and \(q\):
+      - Returning to the previous node is weighted by \(1/p\).
+      - Staying close in the graph vs exploring far is controlled by \(q\).
+   - This allows interpolation between BFS-like (community) and DFS-like
+      (structural) behavior.
+
+### 9.2 Implementation in this project
+
+- `dw.py`:
+   - `generate_random_walks` – uniform walks for DeepWalk.
+   - `train_deepwalk_embeddings` – trains Word2Vec and returns `node -> vector`.
+   - `predict_links_for_node` – uses cosine similarity to rank non-neighbors.
+
+- `nv.py`:
+   - `_node2vec_next_step` – Node2Vec transition rule using \(p, q\).
+   - `generate_node2vec_walks` and `train_node2vec_embeddings` – biased walks
+      and training.
+   - `predict_links_for_node` – same interface as DeepWalk but using
+      Node2Vec embeddings.
+
+In `analysis.py`, we train embeddings **once** on the train graph and then
+wrap the predictors so they can be evaluated via the same
+`evaluate_algorithm_detailed` sampling framework used for the heuristics.
+
+### 9.3 Qualitative expectations
+
+- DeepWalk and Node2Vec can capture longer-range structural patterns, not just
+   immediate neighbors.
+- On sparse graphs with community structure (like social networks), they
+   usually:
+   - Achieve competitive or better recall than simple heuristics.
+   - Have higher runtime due to embedding training.
+
+In practice, for this project we mostly focus on using them as a
+demonstration of modern embedding-based link prediction rather than fully
+optimizing hyperparameters.
+
+---
+
+## 10. Steps to Reproduce
 
 1. Ensure Python 3.12 and required libraries are installed:
     - `networkx`
@@ -378,16 +451,17 @@ about ~7% additional runtime. JC is both slower and less accurate.
     ```
 
 3. The script will:
-    - Load the combined graph from `../dataset` using `graph.py`.
-    - Perform an 80–20 train–test edge split.
-    - Evaluate AA, CM, and JC at multiple \(k\) values.
-    - Write plots into `3.4frs/results/`:
+      - Load the combined graph from `../dataset` using `graph.py`.
+      - Perform an 80–20 train–test edge split.
+      - Evaluate AA, CM, JC, PA, RA, DeepWalk, and Node2Vec at multiple \(k\)
+         values.
+      - Write plots into `3.4frs/results/`:
        - `recommendation_performance_analysis.png`
        - `algorithm_comparison.png`
 
 ---
 
-## 10. Scalability and Comparison with Centrality Analysis
+## 11. Scalability and Comparison with Centrality Analysis
 
 - **Full graph evaluation** (4,039 nodes) would be expensive if run naïvely on
    all node pairs; we therefore sample nodes when computing metrics.
@@ -397,7 +471,7 @@ about ~7% additional runtime. JC is both slower and less accurate.
 
 ---
 
-## 11. Citations
+## 12. Citations
 
 - L. A. Adamic and E. Adar, “Friends and neighbors on the Web,” *Social
    Networks*, vol. 25, no. 3, pp. 211–230, 2003.
