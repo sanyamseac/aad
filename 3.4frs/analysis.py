@@ -153,9 +153,9 @@ def evaluate_algorithm_on_graph(graph_data, algo_name, recommend_func, score_fun
     graph_id, nx_G, train_G, test_edges_pos, test_edges_neg, sample_nodes = graph_data
     
     process = psutil.Process()
-    process.memory_info()
     start_memory = process.memory_info().rss / 1024 / 1024
     start_time = time.time()
+    peak_memory = start_memory
     
     # Run recommendations and collect predictions
     all_predictions = []
@@ -165,10 +165,13 @@ def evaluate_algorithm_on_graph(graph_data, algo_name, recommend_func, score_fun
         preds = recommend_func(train_G, node, top_k)
         all_predictions.extend([(node, pred_node) for pred_node, _ in preds])
         ranked_predictions.append(preds)
+        # Track peak memory during execution
+        current_memory = process.memory_info().rss / 1024 / 1024
+        peak_memory = max(peak_memory, current_memory)
     
     runtime = time.time() - start_time
-    end_memory = process.memory_info().rss / 1024 / 1024
-    memory_used = max(0.1, end_memory - start_memory)
+    # Use peak memory increment as the memory usage metric
+    memory_used = max(0.1, peak_memory - start_memory)
     
     # Calculate performance metrics
     perf_metrics = calculate_performance_metrics(
@@ -304,7 +307,7 @@ def plot_scalability_results(df, results_dir):
     ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plot_path = os.path.join(results_dir, 'scalability_analysis.png')
+    plot_path = os.path.join(os.path.dirname(__file__), 'scalability_analysis.png')
     plt.savefig(plot_path, dpi=300, bbox_inches='tight')
     print(f"\nPlot saved to: {plot_path}")
     plt.close()
@@ -443,14 +446,14 @@ def main():
     print("Performance Metrics + Scalability + Complexity Analysis")
     print("="*80)
     
-    graph_ids = list(range(1, 11))
+    graph_ids = list(range(5, 11))
     
     algorithms = [
         ("Common Neighbors", cm_recommend, compute_common_neighbors_score),
         ("Adamic-Adar", aa_recommend, compute_adamic_adar_score),
-        ("Jaccard Coefficient", jc_recommend, compute_jaccard_coefficient),
-        ("Preferential Attachment", pa_recommend, compute_preferential_attachment_score),
-        ("Resource Allocation", ra_recommend, compute_resource_allocation_score)
+        # ("Jaccard Coefficient", jc_recommend, compute_jaccard_coefficient),
+        # ("Preferential Attachment", pa_recommend, compute_preferential_attachment_score),
+        # ("Resource Allocation", ra_recommend, compute_resource_allocation_score)
     ]
     
     print("\nLoading and preparing graphs...")

@@ -1,0 +1,619 @@
+"""
+Comprehensive Node2Vec Analysis
+- Hyperparameter exploration: p, q, num_walks, walk_length
+- Performance comparison with heuristic algorithms
+- Scalability analysis across different graph sizes
+"""
+
+import os
+import sys
+import time
+import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for thread safety
+import matplotlib.pyplot as plt
+import numpy as np
+import random
+import psutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import networkx as nx
+from itertools import product
+import warnings
+
+# Suppress threading warnings
+warnings.filterwarnings('ignore', category=RuntimeWarning)
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from graph import create_complete_graph
+
+from nv import train_node2vec_model, recommend_friends as nv_recommend, get_edge_score
+
+# Import functions from analysis.py for comparison
+from analysis import (
+    train_test_split, 
+    calculate_performance_metrics,
+    load_and_prepare_graph
+)
+
+
+def evaluate_node2vec_config(graph_data, p, q, num_walks, walk_length, top_k=10, sample_size=50):
+    """Evaluate Node2Vec with specific hyperparameters"""
+    graph_id, nx_G, train_G, test_edges_pos, test_edges_neg, sample_nodes = graph_data
+    
+    config_name = f"p={p}_q={q}_nw={num_walks}_wl={walk_length}"
+    
+    process = psutil.Process()
+    process.memory_info()
+    start_memory = process.memory_info().rss / 1024 / 1024
+    
+    # Training time
+    train_start = time.time()
+    try:
+        model = train_node2vec_model(train_G, p=p, q=q, num_walks=num_walks, walk_length=walk_length)
+        train_time = time.time() - train_start
+    except Exception as e:
+        print(f"Error training Node2Vec with {config_name}: {e}")
+        return None
+    
+    # Inference time
+    inference_start = time.time()
+    all_predictions = []
+    ranked_predictions = []
+    peak_memory = start_memory
+    
+    for node in sample_nodes:
+        preds = nv_recommend(model, node, train_G, top_k)
+        all_predictions.extend([(node, pred_node) for pred_node, _ in preds])
+        ranked_predictions.append(preds)
+        # Track peak memory during inference
+        current_memory = process.memory_info().rss / 1024 / 1024
+        peak_memory = max(peak_memory, current_memory)
+    
+    inference_time = time.time() - inference_start
+    total_runtime = train_time + inference_time
+    
+    # Use peak memory increment as the memory usage metric
+    memory_used = max(0.1, peak_memory - start_memory)
+    
+    # Calculate performance metrics
+    # Note: get_edge_score takes (model, edge), but calculate_performance_metrics 
+    # expects score_func(G, u, v), so we need a wrapper
+    def score_func_wrapper(G, u, v):
+        return get_edge_score(model, (u, v))
+    
+    perf_metrics = calculate_performance_metrics(
+        all_predictions, test_edges_pos, test_edges_neg,
+        train_G, score_func_wrapper, 
+        ranked_predictions, sample_nodes
+    )
+    
+    return {
+        'graph_id': graph_id,
+        'nodes': nx_G.number_of_nodes(),
+        'edges': nx_G.number_of_edges(),
+        'p': p,
+        'q': q,
+        'num_walks': num_walks,
+        'walk_length': walk_length,
+        'train_time': train_time,
+        'inference_time': inference_time,
+        'total_runtime': total_runtime,
+        'memory_mb': memory_used,
+        'sample_size': len(sample_nodes),
+        **perf_metrics
+    }
+
+
+def hyperparameter_exploration(graph_id=1, top_k=10, sample_size=50,
+                              p_values=None, q_values=None, 
+                              num_walks_values=None, walk_length_values=None):
+    """Explore different hyperparameter combinations"""
+    print("="*80)
+    print("NODE2VEC HYPERPARAMETER EXPLORATION")
+    print("="*80)
+    
+    # Use provided values or defaults
+    if p_values is None:
+        p_values = [0.5, 0.7, 1.0, 1.5, 2.0]
+    if q_values is None:
+        q_values = [0.5, 0.7, 1.0, 1.5, 2.0]
+    if num_walks_values is None:
+        num_walks_values = [5, 10, 20]
+    if walk_length_values is None:
+        walk_length_values = [40, 80, 120]
+    
+    # Load graph
+    graph_data = load_and_prepare_graph(graph_id, sample_size)
+    if not graph_data:
+        print(f"Failed to load graph {graph_id}")
+        return None
+    
+    print(f"\nGraph {graph_id}: {graph_data[1].number_of_nodes()} nodes, {graph_data[1].number_of_edges()} edges")
+    
+    # Define parameter grid
+    print(f"\nParameter grid:")
+    print(f"  p: {p_values}")
+    print(f"  q: {q_values}")
+    print(f"  num_walks: {num_walks_values}")
+    print(f"  walk_length: {walk_length_values}")
+    print(f"  Total configurations: {len(p_values) * len(q_values) * len(num_walks_values) * len(walk_length_values)}")
+    
+    # Generate all combinations
+    configs = list(product(p_values, q_values, num_walks_values, walk_length_values))
+    
+    print(f"\nRunning {len(configs)} configurations in parallel...")
+    
+    results = []
+    # Reduce workers to avoid thread conflicts
+    max_workers = min(4, len(configs))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(evaluate_node2vec_config, graph_data, p, q, nw, wl, top_k, sample_size): (p, q, nw, wl)
+            for p, q, nw, wl in configs
+        }
+        
+        completed = 0
+        total = len(futures)
+        for future in as_completed(futures):
+            config = futures[future]
+            try:
+                result = future.result(timeout=300)  # 5 minute timeout
+                if result:
+                    results.append(result)
+                completed += 1
+                if completed % 10 == 0 or completed == total:
+                    print(f"  Progress: {completed}/{total} configurations completed")
+            except TimeoutError:
+                print(f"  Timeout for config {config}")
+                completed += 1
+            except Exception as e:
+                print(f"  Error with config {config}: {e}")
+    
+    return pd.DataFrame(results)
+
+
+def scalability_analysis(graph_ids=None, p=0.7, q=0.7, num_walks=10, walk_length=80):
+    """Analyze Node2Vec scalability across different graph sizes"""
+    print("\n" + "="*80)
+    print("NODE2VEC SCALABILITY ANALYSIS")
+    print("="*80)
+    
+    if graph_ids is None:
+        graph_ids = list(range(1, 11))
+    
+    print(f"\nFixed hyperparameters: p={p}, q={q}, num_walks={num_walks}, walk_length={walk_length}")
+    print(f"Testing on {len(graph_ids)} graphs...")
+    
+    results = []
+    tasks = []
+    
+    for graph_id in graph_ids:
+        try:
+            graph_data = load_and_prepare_graph(graph_id, sample_size=50)
+            if graph_data:
+                tasks.append((graph_data, p, q, num_walks, walk_length, 10, 50))
+                print(f"  Graph {graph_id}: {graph_data[1].number_of_nodes()} nodes, {graph_data[1].number_of_edges()} edges")
+        except Exception as e:
+            print(f"  Error loading graph {graph_id}: {e}")
+    
+    # Reduce worker count to avoid thread conflicts
+    max_workers = min(3, len(tasks))  # Limit to 3 parallel workers
+    print(f"\nRunning with {max_workers} parallel workers...")
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(evaluate_node2vec_config, *task): task for task in tasks}
+        
+        completed = 0
+        total = len(futures)
+        for future in as_completed(futures):
+            try:
+                result = future.result(timeout=600)  # 10 minute timeout per graph
+                if result:
+                    results.append(result)
+                    print(f"  ✓ Progress: {completed + 1}/{total} graphs completed successfully")
+                completed += 1
+            except TimeoutError:
+                print(f"  ✗ Timeout after 10 minutes")
+                completed += 1
+            except Exception as e:
+                print(f"  ✗ Error: {str(e)[:100]}")
+                completed += 1
+    
+    if len(results) == 0:
+        print("\nWarning: No results collected!")
+        return None
+    
+    return pd.DataFrame(results)
+
+
+def compare_with_heuristics(graph_id=1, nv_configs=None, top_k=10, sample_size=50):
+    """Compare Node2Vec with heuristic algorithms"""
+    print("\n" + "="*80)
+    print("NODE2VEC VS HEURISTIC ALGORITHMS COMPARISON")
+    print("="*80)
+    
+    from analysis import (
+        cm_recommend, compute_common_neighbors_score,
+        aa_recommend, compute_adamic_adar_score,
+        jc_recommend, compute_jaccard_coefficient,
+        pa_recommend, compute_preferential_attachment_score,
+        ra_recommend, compute_resource_allocation_score,
+        evaluate_algorithm_on_graph
+    )
+    
+    graph_data = load_and_prepare_graph(graph_id, sample_size)
+    if not graph_data:
+        return None
+    
+    print(f"\nGraph {graph_id}: {graph_data[1].number_of_nodes()} nodes, {graph_data[1].number_of_edges()} edges")
+    
+    # Test different Node2Vec configurations
+    if nv_configs is None:
+        nv_configs = [
+            (0.7, 0.7, 10, 80, "Balanced (p=0.7, q=0.7)"),
+            (1.0, 1.0, 10, 80, "DeepWalk (p=1.0, q=1.0)"),
+            (0.5, 2.0, 10, 80, "BFS-like (p=0.5, q=2.0)"),
+            (2.0, 0.5, 10, 80, "DFS-like (p=2.0, q=0.5)")
+        ]
+    
+    # Evaluate Node2Vec configs
+    print("\nEvaluating Node2Vec configurations...")
+    nv_results = []
+    for p, q, nw, wl, desc in nv_configs:
+        result = evaluate_node2vec_config(graph_data, p, q, nw, wl, top_k=top_k, sample_size=sample_size)
+        if result:
+            result['algorithm'] = f"Node2Vec: {desc}"
+            nv_results.append(result)
+    
+    # Evaluate heuristic algorithms
+    print("\nEvaluating heuristic algorithms...")
+    heuristic_algos = [
+        ("Common Neighbors", cm_recommend, compute_common_neighbors_score),
+        ("Adamic-Adar", aa_recommend, compute_adamic_adar_score),
+        ("Jaccard Coefficient", jc_recommend, compute_jaccard_coefficient),
+        ("Preferential Attachment", pa_recommend, compute_preferential_attachment_score),
+        ("Resource Allocation", ra_recommend, compute_resource_allocation_score)
+    ]
+    
+    heuristic_results = []
+    for algo_name, recommend_func, score_func in heuristic_algos:
+        result = evaluate_algorithm_on_graph(graph_data, algo_name, recommend_func, score_func, top_k=top_k, sample_size=sample_size)
+        if result:
+            result['algorithm'] = algo_name
+            result['train_time'] = 0.0  # Heuristics don't need training
+            result['inference_time'] = result['runtime']
+            result['total_runtime'] = result['runtime']
+            heuristic_results.append(result)
+    
+    all_results = nv_results + heuristic_results
+    return pd.DataFrame(all_results)
+
+
+def plot_hyperparameter_analysis(df, results_dir):
+    """Plot hyperparameter exploration results"""
+    
+    # 1. Effect of p and q
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig.suptitle('Node2Vec Hyperparameter Analysis', fontsize=16, fontweight='bold')
+    
+    # Fix num_walks and walk_length to median values for p,q analysis
+    median_nw = df['num_walks'].median()
+    median_wl = df['walk_length'].median()
+    pq_data = df[(df['num_walks'] == median_nw) & (df['walk_length'] == median_wl)]
+    
+    if len(pq_data) > 0:
+        # Create pivot tables for heatmaps
+        metrics = [
+            ('f1_score', 'F1 Score', axes[0, 0]),
+            ('roc_auc', 'ROC-AUC', axes[0, 1]),
+            ('map', 'MAP', axes[0, 2]),
+            ('total_runtime', 'Runtime (s)', axes[1, 0]),
+            ('train_time', 'Training Time (s)', axes[1, 1]),
+            ('inference_time', 'Inference Time (s)', axes[1, 2])
+        ]
+        
+        for metric_key, metric_name, ax in metrics:
+            pivot = pq_data.pivot_table(values=metric_key, index='q', columns='p', aggfunc='mean')
+            im = ax.imshow(pivot.values, cmap='viridis', aspect='auto')
+            ax.set_xticks(range(len(pivot.columns)))
+            ax.set_yticks(range(len(pivot.index)))
+            ax.set_xticklabels([f'{x:.1f}' for x in pivot.columns])
+            ax.set_yticklabels([f'{x:.1f}' for x in pivot.index])
+            ax.set_xlabel('p (return parameter)', fontsize=11)
+            ax.set_ylabel('q (in-out parameter)', fontsize=11)
+            ax.set_title(f'{metric_name} vs p,q', fontsize=12, fontweight='bold')
+            plt.colorbar(im, ax=ax)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'nv_hyperparameter_pq.png'), dpi=300, bbox_inches='tight')
+    print(f"Saved: nv_hyperparameter_pq.png")
+    plt.close()
+    
+    # 2. Effect of num_walks and walk_length
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig.suptitle('Node2Vec Walk Parameters Analysis', fontsize=16, fontweight='bold')
+    
+    # Fix p and q to 0.7 for walk analysis
+    walk_data = df[(df['p'] == 0.7) & (df['q'] == 0.7)]
+    
+    if len(walk_data) > 0:
+        metrics = [
+            ('f1_score', 'F1 Score', axes[0, 0]),
+            ('roc_auc', 'ROC-AUC', axes[0, 1]),
+            ('map', 'MAP', axes[0, 2]),
+            ('total_runtime', 'Runtime (s)', axes[1, 0]),
+            ('train_time', 'Training Time (s)', axes[1, 1]),
+            ('memory_mb', 'Memory (MB)', axes[1, 2])
+        ]
+        
+        for metric_key, metric_name, ax in metrics:
+            for wl in sorted(walk_data['walk_length'].unique()):
+                data = walk_data[walk_data['walk_length'] == wl]
+                grouped = data.groupby('num_walks')[metric_key].mean()
+                ax.plot(grouped.index, grouped.values, marker='o', label=f'walk_len={wl}', linewidth=2)
+            
+            ax.set_xlabel('Number of Walks', fontsize=11)
+            ax.set_ylabel(metric_name, fontsize=11)
+            ax.set_title(f'{metric_name} vs Walk Parameters', fontsize=12, fontweight='bold')
+            ax.legend(fontsize=9)
+            ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'nv_hyperparameter_walks.png'), dpi=300, bbox_inches='tight')
+    print(f"Saved: nv_hyperparameter_walks.png")
+    plt.close()
+
+
+def plot_scalability_analysis(df, results_dir):
+    """Plot Node2Vec scalability results"""
+    
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig.suptitle('Node2Vec Scalability Analysis', fontsize=16, fontweight='bold')
+    
+    df_sorted = df.sort_values('nodes')
+    
+    # 1. Total Runtime
+    ax = axes[0, 0]
+    ax.plot(df_sorted['nodes'], df_sorted['total_runtime'], marker='o', color='purple', linewidth=2)
+    ax.set_xlabel('Number of Nodes', fontsize=11)
+    ax.set_ylabel('Total Runtime (s)', fontsize=11)
+    ax.set_title('Total Runtime vs Graph Size', fontsize=12, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    
+    # 2. Training vs Inference Time
+    ax = axes[0, 1]
+    ax.plot(df_sorted['nodes'], df_sorted['train_time'], marker='s', label='Training', linewidth=2)
+    ax.plot(df_sorted['nodes'], df_sorted['inference_time'], marker='^', label='Inference', linewidth=2)
+    ax.set_xlabel('Number of Nodes', fontsize=11)
+    ax.set_ylabel('Time (s)', fontsize=11)
+    ax.set_title('Training vs Inference Time', fontsize=12, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # 3. Memory Usage
+    ax = axes[0, 2]
+    ax.plot(df_sorted['nodes'], df_sorted['memory_mb'], marker='d', color='red', linewidth=2)
+    ax.set_xlabel('Number of Nodes', fontsize=11)
+    ax.set_ylabel('Memory (MB)', fontsize=11)
+    ax.set_title('Memory Usage vs Graph Size', fontsize=12, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    
+    # 4. F1 Score
+    ax = axes[1, 0]
+    ax.plot(df_sorted['nodes'], df_sorted['f1_score'], marker='o', color='green', linewidth=2)
+    ax.set_xlabel('Number of Nodes', fontsize=11)
+    ax.set_ylabel('F1 Score', fontsize=11)
+    ax.set_title('F1 Score vs Graph Size', fontsize=12, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    
+    # 5. ROC-AUC
+    ax = axes[1, 1]
+    ax.plot(df_sorted['nodes'], df_sorted['roc_auc'], marker='s', color='blue', linewidth=2)
+    ax.set_xlabel('Number of Nodes', fontsize=11)
+    ax.set_ylabel('ROC-AUC', fontsize=11)
+    ax.set_title('ROC-AUC vs Graph Size', fontsize=12, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    
+    # 6. MAP
+    ax = axes[1, 2]
+    ax.plot(df_sorted['nodes'], df_sorted['map'], marker='^', color='orange', linewidth=2)
+    ax.set_xlabel('Number of Nodes', fontsize=11)
+    ax.set_ylabel('MAP', fontsize=11)
+    ax.set_title('MAP vs Graph Size', fontsize=12, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'nv_scalability.png'), dpi=300, bbox_inches='tight')
+    print(f"Saved: nv_scalability.png")
+    plt.close()
+
+
+def plot_comparison_with_heuristics(df, results_dir):
+    """Plot comparison between Node2Vec and heuristic algorithms"""
+    
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig.suptitle('Node2Vec vs Heuristic Algorithms Comparison', fontsize=16, fontweight='bold')
+    
+    algorithms = df['algorithm'].unique()
+    colors = plt.cm.tab10(np.linspace(0, 1, len(algorithms)))
+    
+    metrics = [
+        ('precision', 'Precision', axes[0, 0]),
+        ('recall', 'Recall', axes[0, 1]),
+        ('f1_score', 'F1 Score', axes[0, 2]),
+        ('roc_auc', 'ROC-AUC', axes[1, 0]),
+        ('map', 'MAP', axes[1, 1]),
+        ('total_runtime', 'Runtime (s)', axes[1, 2])
+    ]
+    
+    for metric_key, metric_name, ax in metrics:
+        values = [df[df['algorithm'] == algo][metric_key].iloc[0] for algo in algorithms]
+        bars = ax.bar(range(len(algorithms)), values, color=colors)
+        ax.set_xticks(range(len(algorithms)))
+        ax.set_xticklabels(algorithms, rotation=45, ha='right', fontsize=9)
+        ax.set_ylabel(metric_name, fontsize=11)
+        ax.set_title(f'{metric_name} Comparison', fontsize=12, fontweight='bold')
+        ax.grid(True, alpha=0.3, axis='y')
+        
+        # Highlight Node2Vec algorithms
+        for i, algo in enumerate(algorithms):
+            if 'Node2Vec' in algo:
+                bars[i].set_edgecolor('red')
+                bars[i].set_linewidth(2)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'nv_vs_heuristics.png'), dpi=300, bbox_inches='tight')
+    print(f"Saved: nv_vs_heuristics.png")
+    plt.close()
+
+
+def main():
+    print("="*80)
+    print("COMPREHENSIVE NODE2VEC ANALYSIS")
+    print("="*80)
+    
+    # ===================== CONFIGURATION CONSTANTS =====================
+    # Hyperparameter ranges for exploration
+    P_VALUES = [0.5, 0.7, 1.0, 1.5, 2.0]           # Return parameter
+    Q_VALUES = [0.5, 0.7, 1.0, 1.5, 2.0]           # In-out parameter
+    NUM_WALKS_VALUES = [5, 10, 20]                  # Number of walks per node
+    WALK_LENGTH_VALUES = [40, 80, 120]              # Length of each walk
+    
+    # Scalability test configuration
+    SCALABILITY_GRAPH_IDS = list(range(1, 5))      # Test on graphs 1-10
+    SCALABILITY_P = 0.7                              # Fixed p for scalability
+    SCALABILITY_Q = 0.7                              # Fixed q for scalability
+    SCALABILITY_NUM_WALKS = 10                       # Fixed num_walks
+    SCALABILITY_WALK_LENGTH = 80                     # Fixed walk_length
+    
+    # Comparison configuration
+    COMPARISON_GRAPH_ID = 5                          # Which graph to compare on
+    COMPARISON_CONFIGS = [
+        (0.7, 0.7, 10, 80, "Balanced (p=0.7, q=0.7)"),
+        (1.0, 1.0, 10, 80, "DeepWalk (p=1.0, q=1.0)"),
+        (0.5, 2.0, 10, 80, "BFS-like (p=0.5, q=2.0)"),
+        (2.0, 0.5, 10, 80, "DFS-like (p=2.0, q=0.5)")
+    ]
+    
+    # General settings
+    HYPERPARAM_GRAPH_ID = 1                          # Graph for hyperparameter exploration
+    TOP_K = 10                                       # Number of recommendations
+    SAMPLE_SIZE = 50                                 # Number of nodes to sample
+    # ==================================================================
+    
+    results_dir = os.path.join(os.path.dirname(__file__), 'results')
+    os.makedirs(results_dir, exist_ok=True)
+    
+    # 1. Hyperparameter Exploration
+    print("\n" + "="*80)
+    print("PHASE 1: HYPERPARAMETER EXPLORATION")
+    print("="*80)
+    print(f"Configuration:")
+    print(f"  p values: {P_VALUES}")
+    print(f"  q values: {Q_VALUES}")
+    print(f"  num_walks values: {NUM_WALKS_VALUES}")
+    print(f"  walk_length values: {WALK_LENGTH_VALUES}")
+    print(f"  Total combinations: {len(P_VALUES) * len(Q_VALUES) * len(NUM_WALKS_VALUES) * len(WALK_LENGTH_VALUES)}")
+    
+    # Pass constants to hyperparameter_exploration
+    # hyperparam_df = hyperparameter_exploration(
+    #     graph_id=HYPERPARAM_GRAPH_ID, 
+    #     top_k=TOP_K, 
+    #     sample_size=SAMPLE_SIZE,
+    #     p_values=P_VALUES,
+    #     q_values=Q_VALUES,
+    #     num_walks_values=NUM_WALKS_VALUES,
+    #     walk_length_values=WALK_LENGTH_VALUES
+    # )
+    
+    # if hyperparam_df is not None and len(hyperparam_df) > 0:
+    #     hyperparam_csv = os.path.join(results_dir, 'nv_hyperparameter_exploration.csv')
+    #     hyperparam_df.to_csv(hyperparam_csv, index=False)
+    #     print(f"\nHyperparameter results saved to: {hyperparam_csv}")
+        
+    #     print("\nTop 5 configurations by F1 Score:")
+    #     top_configs = hyperparam_df.nlargest(5, 'f1_score')[['p', 'q', 'num_walks', 'walk_length', 'f1_score', 'roc_auc', 'map', 'total_runtime']]
+    #     print(top_configs.to_string(index=False))
+        
+    #     plot_hyperparameter_analysis(hyperparam_df, results_dir)
+    
+    # 2. Scalability Analysis
+    print("\n" + "="*80)
+    print("PHASE 2: SCALABILITY ANALYSIS")
+    print("="*80)
+    print(f"Configuration:")
+    print(f"  Graph IDs: {SCALABILITY_GRAPH_IDS}")
+    print(f"  Fixed p={SCALABILITY_P}, q={SCALABILITY_Q}")
+    print(f"  Fixed num_walks={SCALABILITY_NUM_WALKS}, walk_length={SCALABILITY_WALK_LENGTH}")
+    
+    scalability_df = scalability_analysis(
+        graph_ids=SCALABILITY_GRAPH_IDS,
+        p=SCALABILITY_P,
+        q=SCALABILITY_Q,
+        num_walks=SCALABILITY_NUM_WALKS,
+        walk_length=SCALABILITY_WALK_LENGTH
+    )
+    
+    if scalability_df is not None and len(scalability_df) > 0:
+        scalability_csv = os.path.join(results_dir, 'nv_scalability.csv')
+        scalability_df.to_csv(scalability_csv, index=False)
+        print(f"\nScalability results saved to: {scalability_csv}")
+        
+        plot_scalability_analysis(scalability_df, results_dir)
+    
+    # 3. Comparison with Heuristics
+    print("\n" + "="*80)
+    print("PHASE 3: COMPARISON WITH HEURISTIC ALGORITHMS")
+    print("="*80)
+    print(f"Configuration:")
+    print(f"  Comparison graph ID: {COMPARISON_GRAPH_ID}")
+    print(f"  Node2Vec configurations to test: {len(COMPARISON_CONFIGS)}")
+    for p, q, nw, wl, desc in COMPARISON_CONFIGS:
+        print(f"    - {desc}: p={p}, q={q}, num_walks={nw}, walk_length={wl}")
+    
+    comparison_df = compare_with_heuristics(
+        graph_id=COMPARISON_GRAPH_ID,
+        nv_configs=COMPARISON_CONFIGS,
+        top_k=TOP_K,
+        sample_size=SAMPLE_SIZE
+    )
+    
+    if comparison_df is not None and len(comparison_df) > 0:
+        comparison_csv = os.path.join(results_dir, 'nv_vs_heuristics.csv')
+        comparison_df.to_csv(comparison_csv, index=False)
+        print(f"\nComparison results saved to: {comparison_csv}")
+        
+        print("\nPerformance Comparison:")
+        display_cols = ['algorithm', 'precision', 'recall', 'f1_score', 'roc_auc', 'map', 'total_runtime', 'memory_mb']
+        print(comparison_df[display_cols].to_string(index=False))
+        
+        plot_comparison_with_heuristics(comparison_df, results_dir)
+    
+    print("\n" + "="*80)
+    print("NODE2VEC ANALYSIS COMPLETE!")
+    print("="*80)
+    print(f"\nAll results and plots saved to: {results_dir}")
+    
+    return {
+        # 'hyperparameters': hyperparam_df,
+        'scalability': scalability_df,
+        'comparison': comparison_df
+    }
+
+
+if __name__ == "__main__":
+    import sys
+    try:
+        results = main()
+        # Force cleanup
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        sys.exit(0)
+    except KeyboardInterrupt:
+        print("\n\nAnalysis interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n\nFATAL ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
