@@ -446,14 +446,14 @@ def main():
     print("Performance Metrics + Scalability + Complexity Analysis")
     print("="*80)
     
-    graph_ids = list(range(5, 11))
+    graph_ids = list(range(1, 11))
     
     algorithms = [
         ("Common Neighbors", cm_recommend, compute_common_neighbors_score),
         ("Adamic-Adar", aa_recommend, compute_adamic_adar_score),
-        # ("Jaccard Coefficient", jc_recommend, compute_jaccard_coefficient),
-        # ("Preferential Attachment", pa_recommend, compute_preferential_attachment_score),
-        # ("Resource Allocation", ra_recommend, compute_resource_allocation_score)
+        ("Jaccard Coefficient", jc_recommend, compute_jaccard_coefficient),
+        ("Preferential Attachment", pa_recommend, compute_preferential_attachment_score),
+        ("Resource Allocation", ra_recommend, compute_resource_allocation_score)
     ]
     
     print("\nLoading and preparing graphs...")
