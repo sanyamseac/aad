@@ -49,42 +49,54 @@ def evaluate_algorithm_detailed(train_graph, test_edges, predict_func, k_values=
     np.random.seed(42)
     sample_nodes = np.random.choice(all_nodes, min(sample_size, len(all_nodes)), replace=False)
     
+    # Pre-calculate the set of relevant test edges for the sample
+    # (Recall Denominator Fix: Only count edges we could possibly find)
+    test_edge_set = set()
+    relevant_test_edges_count = 0
+    
+    for u, v in test_edges:
+        edge = tuple(sorted((u, v)))
+        test_edge_set.add(edge)
+        # An edge is relevant if at least one endpoint is in our sample
+        if u in sample_nodes or v in sample_nodes:
+            relevant_test_edges_count += 1
+            
     print(f"  Evaluating on {len(sample_nodes)} sampled nodes...")
+    print(f"  Relevant test edges (denominator for recall): {relevant_test_edges_count}")
     
     for k in k_values:
         start_time = time.time()
         
-        # Get all predictions for sampled nodes
-        all_predictions = []
-        test_edge_set = set(test_edges)
+        hits = 0
+        total_predictions = 0
         
         for node in sample_nodes:
             predictions = predict_func(train_graph, node, k=k)
             for candidate, score in predictions:
-                all_predictions.append((node, candidate, score))
+                total_predictions += 1
+                # Check if this predicted edge exists in test set
+                predicted_edge = tuple(sorted((node, candidate)))
+                if predicted_edge in test_edge_set:
+                    hits += 1
         
         runtime = time.time() - start_time
         
         # Calculate metrics
-        predicted_edges = set((u, v) for u, v, _ in all_predictions)
+        precision = hits / total_predictions if total_predictions > 0 else 0.0
         
-        # Also consider reverse edges since graph is undirected
-        predicted_edges_with_reverse = predicted_edges | set((v, u) for u, v in predicted_edges)
-        test_edge_set_with_reverse = test_edge_set | set((v, u) for u, v in test_edges)
+        # FIXED RECALL CALCULATION:
+        # Divide hits by the number of discoverable edges, not total edges in graph
+        recall = hits / relevant_test_edges_count if relevant_test_edges_count > 0 else 0.0
         
-        true_positives = len(predicted_edges_with_reverse.intersection(test_edge_set_with_reverse))
-        
-        precision = true_positives / len(predicted_edges) if predicted_edges else 0
-        recall = true_positives / len(test_edges) if test_edges else 0
-        f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
         
         results[k] = {
             'k': k,
             'precision': precision,
             'recall': recall,
             'f1_score': f1_score,
-            'true_positives': true_positives,
-            'total_predictions': len(predicted_edges),
+            'true_positives': hits,
+            'total_predictions': total_predictions,
             'runtime': runtime
         }
         
@@ -103,11 +115,7 @@ def print_top_recommendations(G, node, algo_name, predict_func, top_n=5):
 
 
 def compare_algorithms_on_node(G, node, k=5):
-    """Compare heuristic algorithms' recommendations for a specific node.
-
-    For readability in the table we keep only AA/CM/JC here.
-    Returns a DataFrame with combined results.
-    """
+    """Compare heuristic algorithms' recommendations for a specific node."""
     aa_recs = aa_predict(G, node, k=k)
     cm_recs = cm_predict(G, node, k=k)
     jc_recs = jc_predict(G, node, k=k)
@@ -117,30 +125,15 @@ def compare_algorithms_on_node(G, node, k=5):
     
     # Adamic-Adar
     for i, (candidate, score) in enumerate(aa_recs, 1):
-        data.append({
-            'Rank': i,
-            'Algorithm': 'Adamic-Adar',
-            'Candidate': candidate,
-            'Score': score
-        })
+        data.append({'Rank': i, 'Algorithm': 'Adamic-Adar', 'Candidate': candidate, 'Score': score})
     
     # Common Neighbors
     for i, (candidate, score) in enumerate(cm_recs, 1):
-        data.append({
-            'Rank': i,
-            'Algorithm': 'Common Neighbors',
-            'Candidate': candidate,
-            'Score': score
-        })
+        data.append({'Rank': i, 'Algorithm': 'Common Neighbors', 'Candidate': candidate, 'Score': score})
     
     # Jaccard Coefficient
     for i, (candidate, score) in enumerate(jc_recs, 1):
-        data.append({
-            'Rank': i,
-            'Algorithm': 'Jaccard Coefficient',
-            'Candidate': candidate,
-            'Score': score
-        })
+        data.append({'Rank': i, 'Algorithm': 'Jaccard Coefficient', 'Candidate': candidate, 'Score': score})
     
     return pd.DataFrame(data)
 
@@ -194,12 +187,9 @@ def main():
         print(f"\n{'='*70}")
         print(f"Recommendations for Node {node}:")
         print(f"{'='*70}")
-        
-    print_top_recommendations(G, node, "Adamic-Adar", aa_predict, top_n=5)
-    print_top_recommendations(G, node, "Common Neighbors", cm_predict, top_n=5)
-    print_top_recommendations(G, node, "Jaccard Coefficient", jc_predict, top_n=5)
-    print_top_recommendations(G, node, "Preferential Attachment", pa_predict, top_n=5)
-    print_top_recommendations(G, node, "Resource Allocation", ra_predict, top_n=5)
+        print_top_recommendations(G, node, "Adamic-Adar", aa_predict, top_n=5)
+        print_top_recommendations(G, node, "Common Neighbors", cm_predict, top_n=5)
+        print_top_recommendations(G, node, "Jaccard Coefficient", jc_predict, top_n=5)
     
     # 4) DELIVERABLE: Side-by-Side Comparison Table
     print("\n" + "="*70)
@@ -207,23 +197,16 @@ def main():
     print("="*70)
     
     comparison_df = compare_algorithms_on_node(G, 0, k=10)
-    
-    # Pivot table for better visualization
     pivot_table = comparison_df.pivot(index='Rank', columns='Algorithm', values='Candidate')
     print("\nCandidate Recommendations by Rank:")
     print(pivot_table)
-    
-    # Score comparison
-    score_pivot = comparison_df.pivot(index='Rank', columns='Algorithm', values='Score')
-    print("\nScores by Rank:")
-    print(score_pivot)
     
     # 5) DELIVERABLE: Performance Evaluation at Multiple k Values
     print("\n" + "="*70)
     print("PERFORMANCE EVALUATION (TRAIN-TEST SPLIT)")
     print("="*70)
     
-    # Smaller k values for faster experimentation
+    # k values for experimentation
     k_values = [5, 10]
     
     print("\nEvaluating Adamic-Adar...")
@@ -245,6 +228,7 @@ def main():
     print("Training DeepWalk embeddings on train graph...")
     dw_embeddings = train_deepwalk_embeddings(train_graph, embedding_dim=32, num_walks=5, walk_length=20)
 
+    # Wrapper to pass fixed embeddings
     def dw_predict_wrapper(graph, node, k=10):
         return dw_predict(graph, dw_embeddings, node, k=k)
 
@@ -254,6 +238,7 @@ def main():
     print("Training Node2Vec embeddings on train graph...")
     nv_embeddings = train_node2vec_embeddings(train_graph, embedding_dim=32, num_walks=5, walk_length=20, p=1.0, q=1.0)
 
+    # Wrapper to pass fixed embeddings
     def nv_predict_wrapper(graph, node, k=10):
         return nv_predict(graph, nv_embeddings, node, k=k)
 
@@ -268,76 +253,26 @@ def main():
     # Create comparison dataframe
     performance_data = []
     
-    for k in k_values:
-        performance_data.append({
-            'k': k,
-            'Algorithm': 'Adamic-Adar',
-            'Precision': aa_results[k]['precision'],
-            'Recall': aa_results[k]['recall'],
-            'F1-Score': aa_results[k]['f1_score'],
-            'True Positives': aa_results[k]['true_positives'],
-            'Runtime (s)': aa_results[k]['runtime']
-        })
-        
-        performance_data.append({
-            'k': k,
-            'Algorithm': 'Common Neighbors',
-            'Precision': cm_results[k]['precision'],
-            'Recall': cm_results[k]['recall'],
-            'F1-Score': cm_results[k]['f1_score'],
-            'True Positives': cm_results[k]['true_positives'],
-            'Runtime (s)': cm_results[k]['runtime']
-        })
-        
-        performance_data.append({
-            'k': k,
-            'Algorithm': 'Jaccard Coefficient',
-            'Precision': jc_results[k]['precision'],
-            'Recall': jc_results[k]['recall'],
-            'F1-Score': jc_results[k]['f1_score'],
-            'True Positives': jc_results[k]['true_positives'],
-            'Runtime (s)': jc_results[k]['runtime']
-        })
+    # Helper to add results
+    def add_results(algo_name, res_dict):
+        for k in k_values:
+            performance_data.append({
+                'k': k,
+                'Algorithm': algo_name,
+                'Precision': res_dict[k]['precision'],
+                'Recall': res_dict[k]['recall'],
+                'F1-Score': res_dict[k]['f1_score'],
+                'True Positives': res_dict[k]['true_positives'],
+                'Runtime (s)': res_dict[k]['runtime']
+            })
 
-        performance_data.append({
-            'k': k,
-            'Algorithm': 'Preferential Attachment',
-            'Precision': pa_results[k]['precision'],
-            'Recall': pa_results[k]['recall'],
-            'F1-Score': pa_results[k]['f1_score'],
-            'True Positives': pa_results[k]['true_positives'],
-            'Runtime (s)': pa_results[k]['runtime']
-        })
-
-        performance_data.append({
-            'k': k,
-            'Algorithm': 'Resource Allocation',
-            'Precision': ra_results[k]['precision'],
-            'Recall': ra_results[k]['recall'],
-            'F1-Score': ra_results[k]['f1_score'],
-            'True Positives': ra_results[k]['true_positives'],
-            'Runtime (s)': ra_results[k]['runtime']
-        })
-
-        performance_data.append({
-            'k': k,
-            'Algorithm': 'DeepWalk',
-            'Precision': dw_results[k]['precision'],
-            'Recall': dw_results[k]['recall'],
-            'F1-Score': dw_results[k]['f1_score'],
-            'True Positives': dw_results[k]['true_positives'],
-            'Runtime (s)': dw_results[k]['runtime']
-        })
-
-        performance_data.append({
-            'k': k,
-            'Algorithm': 'Node2Vec',
-            'Precision': nv_results[k]['precision'],
-            'Recall': nv_results[k]['recall'],
-            'F1-Score': nv_results[k]['f1_score'],
-            'True Positives': nv_results[k]['true_positives'],
-            'Runtime (s)': nv_results[k]['runtime']
-        })
+    add_results('Adamic-Adar', aa_results)
+    add_results('Common Neighbors', cm_results)
+    add_results('Jaccard Coefficient', jc_results)
+    add_results('Preferential Attachment', pa_results)
+    add_results('Resource Allocation', ra_results)
+    add_results('DeepWalk', dw_results)
+    add_results('Node2Vec', nv_results)
     
     performance_df = pd.DataFrame(performance_data)
     
@@ -364,7 +299,7 @@ def main():
     
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # Plot 1: Precision vs k for all algorithms
+    # Plot 1: Precision vs k
     for algo in performance_df['Algorithm'].unique():
         algo_data = performance_df[performance_df['Algorithm'] == algo]
         axes[0, 0].plot(algo_data['k'], algo_data['Precision'], marker='o', label=algo)
@@ -414,7 +349,7 @@ def main():
     # 9) DELIVERABLE: Algorithm Comparison Visualization
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
     
-    # Bar chart for each metric at a fixed k (use k=10 for speed)
+    # Bar chart for each metric at a fixed k (use k=10 for visualization)
     k_fixed = 10
     k_data = performance_df[performance_df['k'] == k_fixed]
     algorithms = k_data['Algorithm'].values
@@ -427,7 +362,7 @@ def main():
     axes[0].set_ylabel('Precision')
     axes[0].set_title(f'Precision Comparison (k={k_fixed})')
     axes[0].set_xticks(x_pos)
-    axes[0].set_xticklabels(algorithms, rotation=15, ha='right')
+    axes[0].set_xticklabels(algorithms, rotation=45, ha='right')
     axes[0].grid(True, alpha=0.3, axis='y')
     
     # Recall
@@ -436,7 +371,7 @@ def main():
     axes[1].set_ylabel('Recall')
     axes[1].set_title(f'Recall Comparison (k={k_fixed})')
     axes[1].set_xticks(x_pos)
-    axes[1].set_xticklabels(algorithms, rotation=15, ha='right')
+    axes[1].set_xticklabels(algorithms, rotation=45, ha='right')
     axes[1].grid(True, alpha=0.3, axis='y')
     
     # F1-Score
@@ -445,7 +380,7 @@ def main():
     axes[2].set_ylabel('F1-Score')
     axes[2].set_title(f'F1-Score Comparison (k={k_fixed})')
     axes[2].set_xticks(x_pos)
-    axes[2].set_xticklabels(algorithms, rotation=15, ha='right')
+    axes[2].set_xticklabels(algorithms, rotation=45, ha='right')
     axes[2].grid(True, alpha=0.3, axis='y')
     
     plt.tight_layout()
@@ -463,10 +398,6 @@ def main():
     k20_data_sorted = k_data.sort_values('F1-Score', ascending=False)
     print("\nBy F1-Score:")
     print(k20_data_sorted[['Algorithm', 'Precision', 'Recall', 'F1-Score']].to_string(index=False))
-    
-    print("\nBy True Positives:")
-    k20_data_sorted_tp = k_data.sort_values('True Positives', ascending=False)
-    print(k20_data_sorted_tp[['Algorithm', 'True Positives', 'Runtime (s)']].to_string(index=False))
     
     print("\n" + "="*70)
     print("ANALYSIS COMPLETE")

@@ -268,23 +268,17 @@ def calculate_metrics_at_multiple_k(train_graph: nx.Graph, test_edges: List[Tupl
 def demo():
     """
     Demonstration of Adamic-Adar algorithm using Facebook ego network dataset.
-    Shows basic usage, evaluation metrics, explainability, and comparison with Common Neighbors.
     """
     print("="*70)
     print("Adamic-Adar Index Algorithm - Demo")
     print("="*70)
     
-    # Load the complete graph using the function from 'graph.py'
+    # Load graph
     print("\nLoading graph from dataset...")
     dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
-    G, all_ego_nodes, all_circles, all_features = create_complete_graph(dataset_path=dataset_path)
+    G, all_ego_nodes, _, _ = create_complete_graph(dataset_path=dataset_path)
     
-    print(f"\nDataset: Facebook Ego Network")
-    print(f"Nodes: {G.number_of_nodes()}")
-    print(f"Edges: {G.number_of_edges()}")
-    print(f"Ego nodes: {len(all_ego_nodes)}")
-    
-    # Get recommendations for a specific user
+    # 1. Single User Recommendation (Fast)
     node = 0
     recommendations = predict_links_for_node(G, node, k=5)
     
@@ -292,72 +286,52 @@ def demo():
     print(f"Top 5 friend recommendations for user {node}:")
     print(f"{'='*70}")
     for i, (candidate, score) in enumerate(recommendations, 1):
-        explanation = get_adamic_adar_explanation(G, node, candidate)
-        print(f"\n{i}. User {candidate}: Adamic-Adar = {score:.4f}")
-        print(f"   Common neighbors: {explanation['common_neighbors']}")
-        print(f"   Top weighted neighbors (by contribution):")
-        for detail in explanation['common_neighbor_details'][:3]:
-            print(f"      Node {detail['neighbor_id']}: "
-                  f"degree={detail['degree']}, weight={detail['weight']:.4f}")
+        print(f"{i}. User {candidate}: Adamic-Adar = {score:.4f}")
     
-    # Compare with Common Neighbors for first recommendation
-    print(f"\n{'='*70}")
-    print("Comparison: Adamic-Adar vs Common Neighbors")
-    print(f"{'='*70}")
-    if recommendations:
-        u, v = node, recommendations[0][0]
-        comparison = compare_with_common_neighbors(G, u, v)
-        print(f"User pair ({u}, {v}):")
-        print(f"  Common Neighbors:  {comparison['common_neighbors_score']}")
-        print(f"  Adamic-Adar:       {comparison['adamic_adar_score']:.4f}")
-        print(f"  Relative boost:    {comparison['relative_boost']:.2f}%")
-        print(f"\nInterpretation: Adamic-Adar weights rare connections more highly.")
-    
-    # Evaluate on train-test split
+    # 2. Evaluation (Optimized with Sampling)
     print(f"\n{'='*70}")
     print("Evaluation: Train-Test Split (80-20)")
     print(f"{'='*70}")
     
     edges = list(G.edges())
-    np.random.seed(42)  # For reproducibility
+    np.random.seed(42)
     np.random.shuffle(edges)
     split = int(0.8 * len(edges))
     train_edges = edges[:split]
     test_edges = edges[split:]
     
-    print(f"Training edges: {len(train_edges)}")
-    print(f"Test edges: {len(test_edges)}")
-    
-    # Create train graph
     train_graph = nx.Graph()
     train_graph.add_nodes_from(G.nodes())
     train_graph.add_edges_from(train_edges)
     
-    # Evaluate at k=20
-    metrics = evaluate_algorithm(train_graph, test_edges, k=20)
+    print("Evaluating on a sample of 100 nodes (for speed)...")
     
-    print(f"\n{'='*70}")
-    print("Performance Metrics (k=20):")
-    print(f"{'='*70}")
-    print(f"Precision:         {metrics['precision']:.4f}")
-    print(f"Recall:            {metrics['recall']:.4f}")
-    print(f"F1 Score:          {metrics['f1_score']:.4f}")
-    print(f"Average Score:     {metrics['avg_score']:.4f}")
-    print(f"Runtime:           {metrics['runtime']:.4f} seconds")
-    print(f"Total Predictions: {metrics['total_predictions']}")
-    print(f"True Positives:    {metrics['true_positives']}")
+    # MANUAL SAMPLING EVALUATION (Fast)
+    sample_size = 100
+    all_nodes = list(train_graph.nodes())
+    sample_nodes = np.random.choice(all_nodes, min(sample_size, len(all_nodes)), replace=False)
     
-    # Evaluate at multiple k values
-    print(f"\n{'='*70}")
-    print("Performance at Multiple k Values:")
-    print(f"{'='*70}")
-    k_values = [5, 10, 20, 50]
-    results = calculate_metrics_at_multiple_k(train_graph, test_edges, k_values)
+    test_edges_set = set(tuple(sorted((u,v))) for u,v in test_edges)
+    hits = 0
+    total_preds = 0
+    k = 20
     
-    print(f"{'k':>5} {'Precision':>12} {'Recall':>12} {'F1-Score':>12}")
-    print(f"{'-'*5} {'-'*12} {'-'*12} {'-'*12}")
-    for result in results:
-        print(f"{result['k']:>5} {result['precision']:>12.4f} {result['recall']:>12.4f} {result['f1_score']:>12.4f}")
+    start_time = time.time()
+    for node in sample_nodes:
+        preds = predict_links_for_node(train_graph, node, k=k)
+        for cand, _ in preds:
+            if tuple(sorted((node, cand))) in test_edges_set:
+                hits += 1
+        total_preds += len(preds)
+    runtime = time.time() - start_time
+    
+    precision = hits / total_preds if total_preds > 0 else 0.0
+    
+    print(f"\nPerformance Metrics (k={k}):")
+    print(f"Precision:         {precision:.4f}")
+    print(f"Runtime:           {runtime:.4f} seconds")
+    print(f"Total Predictions: {total_preds}")
+    print(f"True Positives:    {hits}")
 
 
 if __name__ == "__main__":
