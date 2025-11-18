@@ -1,151 +1,312 @@
-"""Node2Vec-style embeddings for friend recommendation."""
-
+from gensim.models import Word2Vec
 import os
 import sys
-import time
-from typing import List, Tuple, Dict
-
-import networkx as nx
 import numpy as np
-from gensim.models import Word2Vec
+import random
+import networkx as nx
+import questionary
+from tqdm import tqdm
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
+class Graph():
+    def __init__(self, nx_G, p, q):
+        self.G = nx_G
+        self.p = p
+        self.q = q
 
-def _node2vec_next_step(rng, graph, prev, current, p, q):
-    """Choose next node for Node2Vec random walk (biased)."""
-    neighbors = list(graph.neighbors(current))
-    if not neighbors:
-        return current
+    def node2vec_walk(self, walk_length, start_node):
+        '''
+        Simulate a random walk starting from start node.
+        '''
+        G = self.G
+        alias_nodes = self.alias_nodes
+        alias_edges = self.alias_edges
 
-    if prev is None:
-        return rng.choice(neighbors)
+        walk = [start_node]
 
-    weights = []
-    for dst in neighbors:
-        if dst == prev:
-            weights.append(1.0 / p)
-        elif graph.has_edge(dst, prev):
-            weights.append(1.0)
+        while len(walk) < walk_length:
+            cur = walk[-1]
+            cur_nbrs = sorted(G.neighbors(cur))
+            if len(cur_nbrs) > 0:
+                if len(walk) == 1:
+                    walk.append(cur_nbrs[alias_draw(alias_nodes[cur][0], alias_nodes[cur][1])])
+                else:
+                    prev = walk[-2]
+                    next = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0], 
+                        alias_edges[(prev, cur)][1])]
+                    walk.append(next)
+            else:
+                break
+
+        return walk
+
+    def simulate_walks(self, num_walks, walk_length):
+        '''
+        Repeatedly simulate random walks from each node.
+        '''
+        G = self.G
+        walks = []
+        nodes = list(G.nodes())
+        print('Simulating random walks...')
+        for walk_iter in tqdm(range(num_walks), desc="Walk iterations"):
+            random.shuffle(nodes)
+            for node in nodes:
+                walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
+
+        return walks
+
+    def get_alias_edge(self, src, dst):
+        '''
+        Get the alias edge setup lists for a given edge.
+        '''
+        G = self.G
+        p = self.p
+        q = self.q
+
+        unnormalized_probs = []
+        for dst_nbr in sorted(G.neighbors(dst)):
+            if dst_nbr == src:
+                unnormalized_probs.append(1.0/p)
+            elif G.has_edge(dst_nbr, src):
+                unnormalized_probs.append(1.0)
+            else:
+                unnormalized_probs.append(1.0/q)
+        norm_const = sum(unnormalized_probs)
+        normalized_probs =  [float(u_prob)/norm_const for u_prob in unnormalized_probs]
+
+        return alias_setup(normalized_probs)
+
+    def preprocess_transition_probs(self):
+        '''
+        Preprocessing of transition probabilities for guiding the random walks.
+        '''
+        G = self.G
+
+        alias_nodes = {}
+        for node in G.nodes():
+            unnormalized_probs = [1.0 for nbr in sorted(G.neighbors(node))]
+            norm_const = sum(unnormalized_probs)
+            normalized_probs =  [float(u_prob)/norm_const for u_prob in unnormalized_probs]
+            alias_nodes[node] = alias_setup(normalized_probs)
+
+        alias_edges = {}
+        triads = {}
+
+        for edge in G.edges():
+            alias_edges[edge] = self.get_alias_edge(edge[0], edge[1])
+            alias_edges[(edge[1], edge[0])] = self.get_alias_edge(edge[1], edge[0])
+
+        self.alias_nodes = alias_nodes
+        self.alias_edges = alias_edges
+
+        return
+
+
+def alias_setup(probs):
+    '''
+    Compute utility lists for non-uniform sampling from discrete distributions.
+    Refer to https://hips.seas.harvard.edu/blog/2013/03/03/the-alias-method-efficient-sampling-with-many-discrete-outcomes/
+    for details
+    '''
+    K = len(probs)
+    q = np.zeros(K)
+    J = np.zeros(K, dtype=int)
+
+    smaller = []
+    larger = []
+    for kk, prob in enumerate(probs):
+        q[kk] = K*prob
+        if q[kk] < 1.0:
+            smaller.append(kk)
         else:
-            weights.append(1.0 / q)
+            larger.append(kk)
 
-    weights = np.array(weights, dtype=float)
-    weights /= weights.sum()
-    return rng.choice(neighbors, p=weights)
+    while len(smaller) > 0 and len(larger) > 0:
+        small = smaller.pop()
+        large = larger.pop()
 
+        J[small] = large
+        q[large] = q[large] + q[small] - 1.0
+        if q[large] < 1.0:
+            smaller.append(large)
+        else:
+            larger.append(large)
 
-def generate_node2vec_walks(graph, num_walks=10, walk_length=40, p=1.0, q=1.0, seed=42):
-    """Generate Node2Vec biased random walks."""
-    rng = np.random.RandomState(seed)
-    walks = []
-    nodes = list(graph.nodes())
+    return J, q
 
-    for _ in range(num_walks):
-        rng.shuffle(nodes)
-        for start in nodes:
-            walk = [start]
-            prev = None
-            current = start
-            for _ in range(walk_length - 1):
-                nxt = _node2vec_next_step(rng, graph, prev, current, p, q)
-                if nxt == current:
-                    break
-                prev, current = current, nxt
-                walk.append(current)
-            walks.append([str(n) for n in walk])
-    return walks
+def alias_draw(J, q):
+    '''
+    Draw sample from a non-uniform discrete distribution using alias sampling.
+    '''
+    K = len(J)
 
+    kk = int(np.floor(np.random.rand()*K))
+    if np.random.rand() < q[kk]:
+        return kk
+    else:
+        return J[kk]
 
-def train_node2vec_embeddings(graph, embedding_dim=64, num_walks=10, walk_length=40, p=1.0, q=1.0, window_size=5, workers=1, seed=42):
-    """Train Node2Vec embeddings and return node -> vector mapping."""
-    walks = generate_node2vec_walks(graph, num_walks, walk_length, p, q, seed)
+def learn_embeddings(walks, size=128, window=10, workers=8, iter=5):
+	'''
+	Learn embeddings by optimizing the Skipgram objective using SGD.
+	'''
+	walks = [list(map(str, walk)) for walk in walks]
+	model = Word2Vec(sentences=walks, vector_size=size, window=window, workers=workers, epochs=iter, min_count=0, sg=1) #sg 1 for skip gram and min_count 0 to consider all nodes
+	
+	return model
+
+def get_edge_score(model, edge):
+	'''
+	Compute cosine similarity between node embeddings.
+	'''
+	u, v = edge
+	try:
+		u_emb = model.wv[str(u)]
+		v_emb = model.wv[str(v)]
+		score = np.dot(u_emb, v_emb) / (np.linalg.norm(u_emb) * np.linalg.norm(v_emb))
+		return score
+	except KeyError:
+		return 0.0
+
+def recommend_friends(model, node, G, top_k=10):
+	'''
+	Recommend top-k friends for a given node.
+	'''
+	try:
+		node_emb = model.wv[str(node)]
+	except KeyError:
+		return []
+	
+	recommendations = []
+	for other_node in G.nodes():
+		if other_node != node and not G.has_edge(node, other_node):
+			try:
+				other_emb = model.wv[str(other_node)]
+				score = np.dot(node_emb, other_emb) / (np.linalg.norm(node_emb) * np.linalg.norm(other_emb))
+				recommendations.append((other_node, score))
+			except KeyError:
+				continue
+	
+	recommendations.sort(key=lambda x: x[1], reverse=True)
+	return recommendations[:top_k]
+
+def train_node2vec_model(G, p=0.7, q=0.7, num_walks=10, walk_length=80):
+	'''
+	Train Node2Vec model on a graph.
+	
+	Args:
+		G: NetworkX graph
+		p: Return parameter
+		q: In-out parameter
+		num_walks: Number of walks per node
+		walk_length: Length of each walk
+		
+	Returns:
+		Trained Word2Vec model
+	'''
+	print(f"Training Node2Vec with p={p}, q={q}")
+	graph_obj = Graph(G, p, q)
+	graph_obj.preprocess_transition_probs()
+	walks = graph_obj.simulate_walks(num_walks, walk_length)
+	model = learn_embeddings(walks)
+	return model
+
+def nv_main(nx_G, p=0.7, q=0.7, num_walks=10, walk_length=80, nodes=None, top_k=5):
+    model = train_node2vec_model(nx_G, p, q, num_walks, walk_length)
+    if nodes is not None:
+        for n in nodes:
+            friends = recommend_friends(model, n, nx_G, top_k)
+            return [rec_node for rec_node, _ in friends]
     
-    model = Word2Vec(sentences=walks, vector_size=embedding_dim, window=window_size, min_count=0, sg=1, workers=workers, seed=seed, epochs=5)
-
-    embeddings = {}
-    for node in graph.nodes():
-        # Pre-normalize vectors
-        vec = model.wv[str(node)]
-        norm = np.linalg.norm(vec)
-        embeddings[node] = vec / norm if norm > 0 else vec
-    return embeddings
-
-
-def predict_links_for_node(graph, embeddings, node, k=10):
-    """Predict top-k friend recommendations using vectorized cosine similarity."""
-    if node not in graph or node not in embeddings:
-        return []
-
-    neighbors = set(graph.neighbors(node))
-    candidates = [n for n in graph.nodes() if n != node and n not in neighbors]
-    
-    if not candidates:
-        return []
-
-    target_vec = embeddings[node].reshape(1, -1)
-    candidate_vecs = np.array([embeddings[n] for n in candidates])
-    
-    # Vectorized Dot Product (since vectors are normalized)
-    scores_array = np.dot(candidate_vecs, target_vec.T).flatten()
-    
-    scores = list(zip(candidates, scores_array))
-    scores.sort(key=lambda x: x[1], reverse=True)
-    return scores[:k]
-
-
-def evaluate_algorithm(train_graph, test_edges, embedding_dim=64, num_walks=10, walk_length=40, p=1.0, q=1.0, k=10):
-    """Evaluate Node2Vec using sampling."""
-    start_time = time.time()
-    
-    embeddings = train_node2vec_embeddings(train_graph, embedding_dim, num_walks, walk_length, p, q)
-    
-    # Efficient Sampling Evaluation
-    all_nodes = list(train_graph.nodes())
-    np.random.seed(42)
-    sample_nodes = np.random.choice(all_nodes, min(100, len(all_nodes)), replace=False)
-    
-    test_edges_set = set(tuple(sorted((u, v))) for u, v in test_edges)
-    relevant_test_edges = 0
-    for u, v in test_edges:
-        if u in sample_nodes or v in sample_nodes:
-            relevant_test_edges += 1
-            
-    hits = 0
-    total_preds = 0
-    
-    for node in sample_nodes:
-        preds = predict_links_for_node(train_graph, embeddings, node, k=k)
-        for candidate, _ in preds:
-            if tuple(sorted((node, candidate))) in test_edges_set:
-                hits += 1
-        total_preds += len(preds)
-
-    precision = hits / total_preds if total_preds > 0 else 0.0
-    recall = hits / relevant_test_edges if relevant_test_edges > 0 else 0.0
-    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
-    
-    return {
-        "algorithm": "Node2Vec",
-        "precision": precision, 
-        "recall": recall, 
-        "f1_score": f1, 
-        "runtime": time.time() - start_time,
-        "true_positives": hits
-    }
-
-def demo():
-    print("Node2Vec Demo")
-    dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
-    G, _, _, _ = create_complete_graph(dataset_path=dataset_path)
-    
-    embeddings = train_node2vec_embeddings(G, embedding_dim=32, num_walks=5, walk_length=20)
-    recs = predict_links_for_node(G, embeddings, 0, k=5)
-    
-    print("\nTop 5 Recommendations for Node 0:")
-    for i, (cand, score) in enumerate(recs, 1):
-        print(f"{i}. User {cand}: score={score:.4f}")
-
 if __name__ == "__main__":
-    demo()
+    nx_G, _, _, _ = create_complete_graph(1)
+    
+    choice = questionary.select(
+        "Which algo would you like to use?",
+        choices=[
+            "Node2Vec Algorithm",
+            "DeepWalk Algorithm",
+            "Advanced (Custom Parameters)"
+        ]
+    ).ask()
+    
+    if choice == "Node2Vec Algorithm":
+        model = train_node2vec_model(nx_G, p=0.7, q=0.7, num_walks=10, walk_length=80)
+    elif choice == "DeepWalk Algorithm":
+        model = train_node2vec_model(nx_G, p=1.0, q=1.0, num_walks=10, walk_length=80)
+    elif choice == "Advanced (Custom Parameters)":
+        p = float(questionary.text(
+            "Enter return parameter (p):",
+            default="0.7",
+            validate=lambda x: x.replace('.', '', 1).isdigit() and float(x) > 0
+        ).ask())
+        
+        q = float(questionary.text(
+            "Enter in-out parameter (q):",
+            default="0.7",
+            validate=lambda x: x.replace('.', '', 1).isdigit() and float(x) > 0
+        ).ask())
+        
+        num_walks = int(questionary.text(
+            "Enter number of walks per node:",
+            default="10",
+            validate=lambda x: x.isdigit() and int(x) > 0
+        ).ask())
+        
+        walk_length = int(questionary.text(
+            "Enter walk length:",
+            default="80",
+            validate=lambda x: x.isdigit() and int(x) > 0
+        ).ask())
+        
+        print(f"\nTraining with custom parameters: p={p}, q={q}, num_walks={num_walks}, walk_length={walk_length}")
+        model = train_node2vec_model(nx_G, p=p, q=q, num_walks=num_walks, walk_length=walk_length)
+    else:
+        print("No valid choice made. Exiting.")
+        exit(1)
+    
+    choice = questionary.select(
+        "How would you like to select nodes for recommendations?",
+        choices=[
+            "Use randomly selected sample nodes",
+            "Enter a specific node ID"
+        ]
+    ).ask()
+    
+    if choice == "Use randomly selected sample nodes":
+        sample_nodes = random.sample(list(nx_G.nodes()), min(3, nx_G.number_of_nodes()))
+        print("\nSample Friend Recommendations:")
+        
+        for node in sample_nodes:
+            recommendations = recommend_friends(model, node, nx_G, top_k=5)
+            print(f"\nTop 5 friend recommendations for node {node}:")
+            if recommendations:
+                for rec_node, score in recommendations:
+                    print(f"  → Node {rec_node}: similarity score = {score:.4f}")
+            else:
+                print(f"  No recommendations available for node {node}")
+            
+    elif choice == "Enter a specific node ID":
+        node_input = questionary.text(f"Enter node ID:").ask()
+        
+        try:
+            node = int(node_input)
+            if node in nx_G.nodes():
+                print("\nFriend Recommendations:")
+                recommendations = recommend_friends(model, node, nx_G, top_k=5)
+                print(f"\nTop 5 friend recommendations for node {node}:")
+                if recommendations:
+                    for rec_node, score in recommendations:
+                        print(f"  → Node {rec_node}: similarity score = {score:.4f}")
+                else:
+                    print(f"  No recommendations available for node {node}")
+            else:
+                print(f"Error: Node {node} does not exist in the graph.")
+        except ValueError:
+            print("Error: Please enter a valid integer node ID.")
+    
+    else:
+        print("No valid choice made. Exiting.")
+        exit(1)

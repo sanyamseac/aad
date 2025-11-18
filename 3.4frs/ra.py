@@ -1,212 +1,90 @@
-"""
-Resource Allocation Index for Friend Recommendation
-RA(u, v) = sum_{w in N(u)∩N(v)} 1 / deg(w)
-
-Author: Team aad.js
-Course: Algorithm Analysis & Design
-Implementation: From scratch (no external algorithm libraries)
-"""
-
 import os
 import sys
-import time
-from typing import List, Tuple, Dict, Set
-
 import networkx as nx
-import numpy as np
+import random
+import questionary
 
-# Import 'graph.py' from the parent 'aad' directory
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
+def compute_resource_allocation_score(G, u, v):
+    neighbors_u = set(G.neighbors(u))
+    neighbors_v = set(G.neighbors(v))
+    common_neighbors = neighbors_u.intersection(neighbors_v)
+    
+    score = 0.0
+    for w in common_neighbors:
+        degree_w = G.degree(w) # Degree centrality implemented in 3.1.2ca/dc
+        if degree_w > 0:
+            score += 1.0 / degree_w
+    
+    return score
 
-def compute_resource_allocation_score(graph: nx.Graph, u: int, v: int) -> float:
-	"""Compute Resource Allocation score between two nodes.
+def recommend_friends(G, node, top_k=10):
+    if node not in G:
+        return []
+    
+    scores = []
+    neighbors = set(G.neighbors(node))
+    
+    for candidate in G.nodes():
+        if candidate != node and candidate not in neighbors:
+            score = compute_resource_allocation_score(G, node, candidate)
+            if score > 0:
+                scores.append((candidate, score))
+    
+    scores.sort(key=lambda x: x[1], reverse=True)
+    return scores[:top_k]
 
-	RA(u, v) = sum_{w in N(u)∩N(v)} 1 / deg(w)
-
-	Time Complexity: O(min(deg(u), deg(v)))
-	Space Complexity: O(deg(u) + deg(v))
-	"""
-
-	neighbors_u = set(graph.neighbors(u))
-	neighbors_v = set(graph.neighbors(v))
-	common_neighbors = neighbors_u.intersection(neighbors_v)
-
-	score = 0.0
-	for w in common_neighbors:
-		degree_w = graph.degree(w)
-		if degree_w > 0:
-			score += 1.0 / degree_w
-
-	return score
-
-
-def predict_links_for_node(graph: nx.Graph, node: int, k: int = 10) -> List[Tuple[int, float]]:
-	"""Predict top-k friend recommendations for a given node using
-	Resource Allocation Index.
-	"""
-
-	if node not in graph:
-		return []
-
-	scores: List[Tuple[int, float]] = []
-	neighbors = set(graph.neighbors(node))
-
-	for candidate in graph.nodes():
-		if candidate != node and candidate not in neighbors:
-			score = compute_resource_allocation_score(graph, node, candidate)
-			if score > 0:
-				scores.append((candidate, score))
-
-	scores.sort(key=lambda x: x[1], reverse=True)
-	return scores[:k]
-
-
-def predict_all_links(graph: nx.Graph, existing_edges: Set[Tuple[int, int]]) -> List[Tuple[int, int, float]]:
-	"""Predict RA scores for all possible non-existing edges in the graph."""
-
-	predictions: List[Tuple[int, int, float]] = []
-	nodes = list(graph.nodes())
-
-	for i, u in enumerate(nodes):
-		for v in nodes[i + 1 :]:
-			if (u, v) not in existing_edges and (v, u) not in existing_edges:
-				score = compute_resource_allocation_score(graph, u, v)
-				if score > 0:
-					predictions.append((u, v, score))
-
-	return predictions
-
-
-def evaluate_algorithm(train_graph: nx.Graph, test_edges: List[Tuple[int, int]], k: int = 10) -> Dict[str, float]:
-	"""Evaluate Resource Allocation on a train/test split.
-
-	Returns precision, recall, F1, runtime and basic counts.
-	"""
-
-	start_time = time.time()
-
-	existing_edges = set(train_graph.edges())
-	all_predictions = predict_all_links(train_graph, existing_edges)
-	all_predictions.sort(key=lambda x: x[2], reverse=True)
-
-	test_edges_set: Set[Tuple[int, int]] = set()
-	for u, v in test_edges:
-		test_edges_set.add((min(u, v), max(u, v)))
-
-	top_k_predictions: Set[Tuple[int, int]] = set()
-	for u, v, _ in all_predictions[:k]:
-		top_k_predictions.add((min(u, v), max(u, v)))
-
-	true_positives = len(top_k_predictions.intersection(test_edges_set))
-	precision = true_positives / k if k > 0 else 0.0
-	recall = true_positives / len(test_edges_set) if test_edges_set else 0.0
-	f1_score = (
-		2 * precision * recall / (precision + recall)
-		if (precision + recall) > 0
-		else 0.0
-	)
-
-	runtime = time.time() - start_time
-
-	return {
-		"algorithm": "Resource Allocation",
-		"precision": precision,
-		"recall": recall,
-		"f1_score": f1_score,
-		"runtime": runtime,
-		"total_predictions": len(all_predictions),
-		"true_positives": true_positives,
-		"k": k,
-	}
-
-
-def calculate_metrics_at_multiple_k(
-	train_graph: nx.Graph,
-	test_edges: List[Tuple[int, int]],
-	k_values: List[int] = [5, 10, 20, 50, 100],
-) -> List[Dict[str, float]]:
-	"""Evaluate RA at multiple k values."""
-
-	results: List[Dict[str, float]] = []
-	for k in k_values:
-		results.append(evaluate_algorithm(train_graph, test_edges, k))
-	return results
-
-
-def demo() -> None:
-	"""Demo for Resource Allocation Index using the Facebook ego dataset."""
-
-	print("=" * 70)
-	print("Resource Allocation Index Algorithm - Demo")
-	print("=" * 70)
-
-	print("\nLoading graph from dataset...")
-	dataset_path = os.path.abspath(
-		os.path.join(os.path.dirname(__file__), "..", "dataset")
-	)
-	G, all_ego_nodes, all_circles, all_features = create_complete_graph(
-		dataset_path=dataset_path
-	)
-
-	print(f"\nDataset: Facebook Ego Network")
-	print(f"Nodes: {G.number_of_nodes()}")
-	print(f"Edges: {G.number_of_edges()}")
-	print(f"Ego nodes: {len(all_ego_nodes)}")
-
-	node = 0
-	recommendations = predict_links_for_node(G, node, k=5)
-
-	print(f"\n{'='*70}")
-	print(f"Top 5 friend recommendations for user {node} (RA):")
-	print(f"{'='*70}")
-	for i, (candidate, score) in enumerate(recommendations, 1):
-		print(f"{i}. User {candidate}: score={score:.4f}")
-
-	print(f"\n{'='*70}")
-	print("Evaluation: Train-Test Split (80-20)")
-	print(f"{'='*70}")
-
-	edges = list(G.edges())
-	np.random.seed(42)
-	np.random.shuffle(edges)
-	split = int(0.8 * len(edges))
-	train_edges = edges[:split]
-	test_edges = edges[split:]
-
-	print(f"Training edges: {len(train_edges)}")
-	print(f"Test edges: {len(test_edges)}")
-
-	train_graph = nx.Graph()
-	train_graph.add_nodes_from(G.nodes())
-	train_graph.add_edges_from(train_edges)
-
-	metrics = evaluate_algorithm(train_graph, test_edges, k=20)
-
-	print(f"\n{'='*70}")
-	print("Performance Metrics (k=20):")
-	print(f"{'='*70}")
-	print(f"Precision:         {metrics['precision']:.4f}")
-	print(f"Recall:            {metrics['recall']:.4f}")
-	print(f"F1 Score:          {metrics['f1_score']:.4f}")
-	print(f"Runtime:           {metrics['runtime']:.4f} seconds")
-	print(f"Total Predictions: {metrics['total_predictions']}")
-	print(f"True Positives:    {metrics['true_positives']}")
-
-	print(f"\n{'='*70}")
-	print("Performance at Multiple k Values:")
-	print(f"{'='*70}")
-	k_values = [5, 10, 20, 50]
-	results = calculate_metrics_at_multiple_k(train_graph, test_edges, k_values)
-	print(f"{'k':>5} {'Precision':>12} {'Recall':>12} {'F1-Score':>12}")
-	print(f"{'-'*5} {'-'*12} {'-'*12} {'-'*12}")
-	for result in results:
-		print(
-			f"{result['k']:>5} {result['precision']:>12.4f} {result['recall']:>12.4f} {result['f1_score']:>12.4f}"
-		)
-
+def ra_main(nx_G, nodes=None, top_k=5):
+    if nodes is not None:
+        for n in nodes:
+            friends = recommend_friends(nx_G, n, top_k)
+            return [rec_node for rec_node, _ in friends]
 
 if __name__ == "__main__":
-	demo()
-
+    nx_G, _, _, _ = create_complete_graph(1)
+    
+    choice = questionary.select(
+        "How would you like to select nodes for recommendations?",
+        choices=[
+            "Use randomly selected sample nodes",
+            "Enter a specific node ID"
+        ]
+    ).ask()
+    
+    if choice == "Use randomly selected sample nodes":
+        sample_nodes = random.sample(list(nx_G.nodes()), min(3, nx_G.number_of_nodes()))
+        print("\nSample Friend Recommendations:")
+        
+        for node in sample_nodes:
+            recommendations = recommend_friends(nx_G, node, top_k=5)
+            print(f"\nTop 5 friend recommendations for node {node}:")
+            if recommendations:
+                for rec_node, score in recommendations:
+                    print(f"  → Node {rec_node}: RA score = {score:.4f}")
+            else:
+                print(f"  No recommendations available for node {node}")
+            
+    elif choice == "Enter a specific node ID":
+        node_input = questionary.text(f"Enter node ID:").ask()
+        
+        try:
+            node = int(node_input)
+            if node in nx_G.nodes():
+                print("\nFriend Recommendations:")
+                recommendations = recommend_friends(nx_G, node, top_k=5)
+                print(f"\nTop 5 friend recommendations for node {node}:")
+                if recommendations:
+                    for rec_node, score in recommendations:
+                        print(f"  → Node {rec_node}: RA score = {score:.4f}")
+                else:
+                    print(f"  No recommendations available for node {node}")
+            else:
+                print(f"Error: Node {node} does not exist in the graph.")
+        except ValueError:
+            print("Error: Please enter a valid integer node ID.")
+    
+    else:
+        print("No valid choice made. Exiting.")
+        exit(1)
