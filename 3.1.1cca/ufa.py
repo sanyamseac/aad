@@ -1,6 +1,7 @@
 import os
 import sys
 import random
+import time
 
 # Include requested imports for dataset access
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -34,21 +35,12 @@ class UnionFind:
 def run_ufa(G, nodes=None, shuffle_edges=False):
     """
     Runs Union-Find on the graph to identify components.
-    
-    Args:
-        G: NetworkX graph object.
-        nodes: Optional list of nodes (if None, taken from G).
-        shuffle_edges (bool): Whether to process edges in random order.
-    
-    Returns:
-        (list, int): (List of component dicts, number of edges processed)
     """
     if nodes is None:
         nodes = list(G.nodes())
         
     uf = UnionFind(nodes)
     
-    # Extract unique edges (u < v)
     edges = []
     for u in G.adj:
         for v in G.adj[u]:
@@ -61,7 +53,6 @@ def run_ufa(G, nodes=None, shuffle_edges=False):
     for u, v in edges:
         uf.union(u, v)
         
-    # Group by root
     components_map = {}
     for node in nodes:
         root = uf.find(node)
@@ -69,29 +60,36 @@ def run_ufa(G, nodes=None, shuffle_edges=False):
             components_map[root] = []
         components_map[root].append(node)
         
-    # Format results
     component_stats = []
     for root, comp_nodes in components_map.items():
         comp_node_set = set(comp_nodes)
-        
         edges_count = 0
         for node in comp_node_set:
             for neighbor in G.adj.get(node, []):
                 if neighbor in comp_node_set and node < neighbor:
                     edges_count += 1
-                    
         component_stats.append({
             "nodes": len(comp_node_set),
-            "edges": edges_count,
-            "node_set": comp_node_set 
+            "edges": edges_count
         })
         
     return component_stats, len(edges)
 
 if __name__ == "__main__":
-    print("Running UFA standalone test...")
-    G, _, _, _ = create_complete_graph(num_files=1)
-    print(f"Graph loaded: {G}")
+    print("\n--- Union-Find Standalone Analysis ---")
+    try:
+        val = input("Enter number of files to use (1-10): ").strip()
+        num = int(val)
+        if not (1 <= num <= 10): raise ValueError
+    except ValueError:
+        print("Invalid input. Using 1 file.")
+        num = 1
+        
+    print(f"Loading {num} file(s)...")
+    G, _, _, _ = create_complete_graph(num_files=num)
     
+    print(f"Running Union-Find...")
+    t0 = time.perf_counter()
     comps, _ = run_ufa(G)
-    print(f"UFA found {len(comps)} components.")
+    print(f"Done in {time.perf_counter()-t0:.4f}s.")
+    print(f"Found {len(comps)} connected components.")

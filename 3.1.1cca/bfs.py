@@ -2,6 +2,7 @@ import os
 import sys
 from collections import deque
 import random
+import time
 
 # Include requested imports for dataset access
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -10,15 +11,6 @@ from graph import create_complete_graph
 def bfs_traversal(G, start_node, visited, shuffle_children=False):
     """
     Performs Breadth-First Search to find a connected component.
-    
-    Args:
-        G: NetworkX graph object (uses G.adj for adjacency).
-        start_node: Node to start from.
-        visited (set): Global visited set (modified in-place).
-        shuffle_children (bool): Whether to randomize neighbor order.
-        
-    Returns:
-        (set, int, int): (component_nodes, component_edges_count, max_queue_size)
     """
     q = deque([start_node])
     visited.add(start_node)
@@ -29,7 +21,6 @@ def bfs_traversal(G, start_node, visited, shuffle_children=False):
     while q:
         curr = q.popleft()
         
-        # Access neighbors via G.adj for performance
         neighbors = list(G.adj.get(curr, []))
         if shuffle_children:
             random.shuffle(neighbors)
@@ -42,7 +33,6 @@ def bfs_traversal(G, start_node, visited, shuffle_children=False):
         
         max_queue_size = max(max_queue_size, len(q))
 
-    # Count edges strictly within the component (u < v to avoid double counting)
     edges_in_component = 0
     for node in component_nodes:
         for neighbor in G.adj.get(node, []):
@@ -52,12 +42,21 @@ def bfs_traversal(G, start_node, visited, shuffle_children=False):
     return component_nodes, edges_in_component, max_queue_size
 
 if __name__ == "__main__":
-    # Standalone test as requested
-    print("Running BFS standalone test...")
-    G, _, _, _ = create_complete_graph(num_files=1) # Load small sample
-    print(f"Graph loaded: {G}")
+    print("\n--- BFS Standalone Traversal ---")
+    try:
+        val = input("Enter number of files to use (1-10): ").strip()
+        num = int(val)
+        if not (1 <= num <= 10): raise ValueError
+    except ValueError:
+        print("Invalid input. Using 1 file.")
+        num = 1
+        
+    print(f"Loading {num} file(s)...")
+    G, _, _, _ = create_complete_graph(num_files=num)
+    start = list(G.nodes())[0]
     
-    start_node = list(G.nodes())[0]
-    visited = set()
-    comp, edges, _ = bfs_traversal(G, start_node, visited)
-    print(f"BFS from node {start_node}: Found component with {len(comp)} nodes and {edges} edges.")
+    print(f"Traversing from node {start}...")
+    t0 = time.perf_counter()
+    comp, edges, _ = bfs_traversal(G, start, set())
+    print(f"Done in {time.perf_counter()-t0:.4f}s.")
+    print(f"Component: {len(comp)} nodes, {edges} edges.")

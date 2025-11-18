@@ -1,40 +1,24 @@
 # Connected Components Analysis (3.1.1cca)
 
-This module implements BFS, DFS, and UFA for Connected Components Analysis (CCA).
-It follows the structure defined in the project proposal deliverables.
+This folder contains the implementation and analysis for Connected Components.
 
-## Code Structure
+## Scripts
 
-### Core Algorithms
-* `bfs.py`: Iterative Breadth-First Search.
-* `dfs.py`: Iterative Depth-First Search.
-* `ufa.py`: Union-Find Algorithm (Disjoint Set Union).
+* `analysis.py`: The main analysis script.
+    * **Analysis A & C**: Runs on the **full 10-file dataset**.
+    * **Analysis B**: Iterates 1-10 files to plot time complexity trends vs V, E, V+E, and V*E.
+    * **Analysis D**: Iterates 1-10 files to generate component size distributions for each step.
 
-### Experimental Analysis (`analysis.py`)
-The `analysis.py` script contains four distinct functions corresponding to the project requirements:
+* `bfs.py`, `dfs.py`, `ufa.py`: Interactive standalone scripts. Run them to perform a single traversal on a chosen number of files.
 
-1.  **`run_function_A()`: Start Node Invariance**
-    * *Valid for:* BFS, DFS.
-    * *Description:* Proves that choosing a random start node within a component does not affect the time complexity of the traversal.
-    * *UFA Note:* Not applicable as UFA processes the global edge list, not a rooted traversal.
+## Output
 
-2.  **`run_function_B()`: Time Complexity Analysis**
-    * *Valid for:* BFS, DFS, UFA.
-    * *Description:* measures runtime across increasing graph sizes (1 to 10 files) to validate $O(V+E)$ for traversals and near-linear time for UFA.
-    * *Output:* `analysis_B_complexity.png`
+Running `python analysis.py` will create:
 
-3.  **`run_function_C()`: Order Invariance**
-    * *Valid for:* BFS, DFS, UFA.
-    * *Description:* Proves that the order of visiting neighbors (BFS/DFS) or processing edges (UFA) does not affect performance. Comparing shuffled vs. non-shuffled inputs.
-
-4.  **`run_function_D()`: CCA Deliverables (Main)**
-    * *Valid for:* BFS, DFS, UFA (Comparison).
-    * *Description:* Runs the full CCA on the complete dataset.
-    * *Deliverables:*
-        * Total number of components.
-        * Giant Component analysis (size, edge count).
-        * Component size distribution plot (`analysis_D_distribution.png`).
-
-## How to Run
-```bash
-python analysis.py
+* **`plots/`**:
+    * `A_Invariance.png`, `C_Order_Invariance.png`
+    * `B_BFS_Complexity_Grid.png`, `B_DFS_Complexity_Grid.png`, `B_UFA_Complexity_Grid.png` (4 subplots each)
+    * `D_1_Distribution.png` ... `D_10_Distribution.png`
+* **`analysis/`**:
+    * `A_Invariance.md`, `C_Order.md`, `B_Complexity.md`
+    * `D_1_Analysis.md` ... `D_10_Analysis.md`
