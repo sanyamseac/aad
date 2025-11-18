@@ -85,7 +85,8 @@ def calculate_roc_auc(scores_pos, scores_neg):
     
     try:
         return roc_auc_score(y_true, y_scores)
-    except:
+    except (ValueError, ZeroDivisionError) as e:
+        print(f"Warning: ROC-AUC score calculation failed: {e}")
         return 0.0
 
 
@@ -161,7 +162,8 @@ def evaluate_algorithm(algo_name, train_G, test_edges_pos, test_edges_neg,
                 scores_pos = [score_func(train_G, u, v) for u, v in test_edges_pos[:test_sample]]
                 scores_neg = [score_func(train_G, u, v) for u, v in test_edges_neg[:test_sample]]
             roc_auc = calculate_roc_auc(scores_pos, scores_neg)
-        except:
+        except (ValueError, ZeroDivisionError, IndexError, KeyError) as e:
+            print(f"Warning: ROC-AUC calculation failed: {e}")
             roc_auc = 0.0
     
     map_score = calculate_map(ranked_predictions, test_edges_pos, sample_nodes)
@@ -173,7 +175,8 @@ def evaluate_algorithm(algo_name, train_G, test_edges_pos, test_edges_neg,
             y_true = [1] * test_sample + [0] * test_sample
             y_scores = scores_pos + scores_neg
             sklearn_map = average_precision_score(y_true, y_scores)
-        except:
+        except (ValueError, NameError, UnboundLocalError) as e:
+            print(f"Warning: sklearn MAP calculation failed: {e}")
             sklearn_map = map_score
     
     results = {
@@ -298,7 +301,7 @@ def main(nx_G, test_ratio=0.2, top_k=10, sample_size=100):
                 completed += 1
                 print(f"  [{completed}/{total}] {algo_name} completed")
             except Exception as e:
-                print(f"  Error evaluating {algo_name}: {e}")
+                print(f"  Error evaluating {algo_name}: {str(e)}")
     
     # Sort results by algorithm name for consistent display
     all_results.sort(key=lambda x: x['algorithm'])

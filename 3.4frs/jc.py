@@ -35,12 +35,6 @@ def recommend_friends(G, node, top_k=10):
     scores.sort(key=lambda x: x[1], reverse=True)
     return scores[:top_k]
 
-def jc_main(nx_G, nodes=None, top_k=5):
-    if nodes is not None:
-        for n in nodes:
-            friends = recommend_friends(nx_G, n, top_k)
-            return [rec_node for rec_node, _ in friends]
-
 if __name__ == "__main__":
     nx_G, _, _, _ = create_complete_graph(1)
     

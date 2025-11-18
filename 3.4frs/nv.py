@@ -213,13 +213,6 @@ def train_node2vec_model(G, p=0.7, q=0.7, num_walks=10, walk_length=80):
 	model = learn_embeddings(walks)
 	return model
 
-def nv_main(nx_G, p=0.7, q=0.7, num_walks=10, walk_length=80, nodes=None, top_k=5):
-    model = train_node2vec_model(nx_G, p, q, num_walks, walk_length)
-    if nodes is not None:
-        for n in nodes:
-            friends = recommend_friends(model, n, nx_G, top_k)
-            return [rec_node for rec_node, _ in friends]
-    
 if __name__ == "__main__":
     nx_G, _, _, _ = create_complete_graph(1)
     
