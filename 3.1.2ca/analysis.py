@@ -3,6 +3,8 @@ import sys
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
 
 # Import the 4 centrality functions 
@@ -102,6 +104,68 @@ def main():
     # Calculating the Pearson correlation between all 4 centrality measures
     correlation_matrix = df.corr()
     print(correlation_matrix)
+    
+    # Create and save correlation heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(correlation_matrix, annot=True, fmt='.3f', cmap='coolwarm', 
+                center=0, square=True, linewidths=1, cbar_kws={"shrink": 0.8},
+                vmin=-1, vmax=1)
+    plt.title('Correlation Matrix: Centrality Measures', fontsize=16, pad=20)
+    plt.tight_layout()
+    
+    # Save the heatmap
+    heatmap_file = "correlation_heatmap.png"
+    plt.savefig(heatmap_file, dpi=300, bbox_inches='tight')
+    print(f"Saved correlation heatmap to '{heatmap_file}'")
+    plt.close()
+    
+    # DELIVERABLE : Top Nodes Comparison Across Measures
+    
+    print("\n" + "="*50)
+    print(" DELIVERABLE: TOP NODES COMPARISON")
+    print("="*50)
+    
+    # Get top 20 nodes for each centrality measure
+    top_n = 20
+    
+    # Create a figure with 4 subplots (one for each centrality measure)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle('Top 20 Nodes Across All Centrality Measures', fontsize=18, y=0.995)
+    
+    centralities = ['Degree', 'Betweenness', 'Closeness', 'Eigenvector']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    
+    for idx, (ax, centrality, color) in enumerate(zip(axes.flatten(), centralities, colors)):
+        # Get top 20 nodes sorted by this centrality measure
+        top_nodes = df.nlargest(top_n, centrality)
+        
+        # Create bar plot
+        bars = ax.barh(range(top_n), top_nodes[centrality].values, color=color, alpha=0.7)
+        
+        # Set y-axis labels (node IDs)
+        ax.set_yticks(range(top_n))
+        ax.set_yticklabels([str(node) for node in top_nodes.index], fontsize=9)
+        
+        # Invert y-axis so highest value is at top
+        ax.invert_yaxis()
+        
+        # Labels and title
+        ax.set_xlabel(f'{centrality} Score', fontsize=11)
+        ax.set_ylabel('Node ID', fontsize=11)
+        ax.set_title(f'Top 20 by {centrality} Centrality', fontsize=13, pad=10)
+        ax.grid(axis='x', alpha=0.3, linestyle='--')
+        
+        # Add value labels on bars
+        for i, (bar, value) in enumerate(zip(bars, top_nodes[centrality].values)):
+            ax.text(value, i, f' {value:.4f}', va='center', fontsize=8)
+    
+    plt.tight_layout()
+    
+    # Save the comparison plot
+    top_nodes_file = "top_nodes_comparison.png"
+    plt.savefig(top_nodes_file, dpi=300, bbox_inches='tight')
+    print(f"Saved top nodes comparison to '{top_nodes_file}'")
+    plt.close()
     
     # Centrality Distribution 
     
