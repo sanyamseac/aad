@@ -1,27 +1,24 @@
 import os
 import sys
-from collections import deque # We need a double-ended queue for an efficient BFS
+from collections import deque # double-ended queue for BFS
 
-# Import 'graph.py' from the parent 'aad' directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
 def betweenness_centrality(G, normalized=True):
-    """Computes the betweenness centrality for all nodes using Brandes' algorithm."""
+    """Computes the betweenness centrality for all nodes using Brandes' algorithm"""
     
-    # 1. Initialize the centrality score for all nodes to 0.0
     centrality = {node: 0.0 for node in G.nodes()}
     
-    # 2. We have to run the algorithm for every single node as a source 's'
+    # run the algorithm for every single node as a source s
     for s in G.nodes():
         
-        # --- 3. Forward Pass: Find all shortest paths from 's' ---
-        # These data structures are reset for each new source 's'
+        # Forward Pass ==> find all shortest paths from source 's'
         
         # Used to process nodes in the correct order during the backward pass
         stack = []
         
-        # predecessors[w] = list of nodes 'v' that are on a shortest path from s to w
+        # predecessors[w] = list of nodes v that are on a shortest path from s to w
         predecessors = {w: [] for w in G.nodes()}
         
         # sigma[w] = number of shortest paths from s to w
@@ -34,34 +31,34 @@ def betweenness_centrality(G, normalized=True):
         
         queue = deque([s])
         
-        # Start the Breadth-First Search
+        # Breadth First Search
         while queue:
-            v = queue.popleft() # Get the next node 'v'
-            stack.append(v)     # Add 'v' to the stack for the backward pass
+            v = queue.popleft() # get the next node v
+            stack.append(v)     # Add v to the stack for the backward pass
             
-            # Look at all neighbors 'w' of 'v'
+            # Look at all neighbors w of v
             for w in G.neighbors(v):
                 
-                # Case 1: 'w' hasn't been seen yet.
+                # Case 1 : w not seen yet
                 if distance[w] < 0:
-                    distance[w] = distance[v] + 1 # Set distance
-                    queue.append(w)               # Add 'w' to the queue
+                    distance[w] = distance[v] + 1   # Set distance
+                    queue.append(w)                 # Add 'w' to the queue
                 
-                # Case 2: This is a shortest path to 'w'
+                # Case 2 : this is a shortest path to w
                 if distance[w] == distance[v] + 1:
-                    sigma[w] += sigma[v]      # Add 'v's path count to 'w's
-                    predecessors[w].append(v) # 'v' is a predecessor of 'w'
+                    sigma[w] += sigma[v]        # Add v's path count to w's
+                    predecessors[w].append(v)   # 'v' is a predecessor of 'w'
                     
-        # --- 4. Backward Pass: Accumulate dependencies ---
+        # Backward Pass : accumulate dependencies
         
-        # This dictionary stores the "dependency" of the source 's' on all other nodes
+        # stores the dependency of the source s on all other nodes
         dependency = {w: 0.0 for w in G.nodes()}
         
-        # Process nodes in reverse order (farthest from 's' first)
+        # Process nodes in reverse order i.e. farthest from s first
         while stack:
             w = stack.pop()
             
-            # Go through all predecessors 'v' of 'w'
+            # go through all predecessors 'v' of 'w'
             for v in predecessors[w]:
                 
                 # Calculate the "credit" 'v' gets for being on a shortest path to 'w'
@@ -70,16 +67,15 @@ def betweenness_centrality(G, normalized=True):
                 # Add this credit to 'v's dependency score
                 dependency[v] += credit
             
-            # Add the dependency score to the final centrality
-            # (as long as 'w' is not the source 's' itself)
+            # Add the dependency score to the final centrality (as long as 'w' is not the source 's' itself)
             if w != s:
                 centrality[w] += dependency[w]
 
-    # --- 5. Finalization and Normalization ---
+    # Finalization and Normalization ---
     
     n = len(centrality)
     
-    # Handle small graphs
+    # for small graphs
     if n <= 2:
         return centrality
 

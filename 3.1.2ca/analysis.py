@@ -4,27 +4,26 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# --- 1. SETUP ---
 
-# Import the 4 centrality functions from your files in this folder
+# Import the 4 centrality functions 
 from dc import degree_centrality
 from bc import betweenness_centrality
 from cc import closeness_centrality
 from ec import eigenvector_centrality
 
-# Import 'graph.py' from the parent 'aad' directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
 def print_top_nodes(df, column, top_n=10):
     """Helper function to print a sorted list of top nodes."""
     print(f"\n--- Top {top_n} Nodes by {column} ---")
+    
     # Sort the DataFrame by the specified column and print the top N
     top_nodes = df.sort_values(by=column, ascending=False).head(top_n)
     print(top_nodes)
 
 def main():
-    # --- 2. LOAD GRAPH ---
+    # LOAD GRAPH 
     
     print("Loading complete graph from dataset...")
     
@@ -34,13 +33,13 @@ def main():
     # This loads the ONE combined graph
     # We correctly unpack all 4 values returned by the function
     G, all_ego_nodes, all_circles, all_features = create_complete_graph(
-        dataset_path=dataset_path  # Pass the correct path here
+        dataset_path=dataset_path  
     )
     print(f"Graph loaded successfully.")
     print(f"Total Nodes: {G.number_of_nodes():,}")
     print(f"Total Edges: {G.number_of_edges():,}")
     
-    # --- 3. RUN & TIME ALGORITHMS ---
+    # RUN & TIME ALGORITHMS 
     
     print("\nStarting centrality calculations...")
     runtimes = {}
@@ -69,11 +68,11 @@ def main():
     runtimes['Eigenvector'] = time.time() - start_time
     print(f"Eigenvector Centrality finished in {runtimes['Eigenvector']:.4f}s")
 
-    # --- 4. CONSOLIDATE RESULTS ---
+    # CONSOLIDATE RESULTS 
     
     print("\nConsolidating results into DataFrame...")
+    
     # Create a pandas DataFrame from the centrality dictionaries
-    # This is the easiest way to manage all the data
     df = pd.DataFrame({
         'Degree': dc,
         'Betweenness': bc,
@@ -84,7 +83,7 @@ def main():
     # Fill any missing values (e.g., from disconnected components) with 0
     df = df.fillna(0)
     
-    # --- 5. DELIVERABLE: Top Influential Users ---
+    # DELIVERABLE : Top Influential Users 
     
     print("\n" + "="*50)
     print(" DELIVERABLE: TOP INFLUENTIAL USERS")
@@ -95,16 +94,16 @@ def main():
     print_top_nodes(df, 'Closeness', top_n=10)
     print_top_nodes(df, 'Eigenvector', top_n=10)
     
-    # --- 6. DELIVERABLE: Correlation Analysis ---
+    # DELIVERABLE : Correlation Analysis 
     
     print("\n" + "="*50)
     print(" DELIVERABLE: CORRELATION ANALYSIS")
     print("="*50)
-    # Calculate the Pearson correlation between all 4 centrality measures
+    # Calculating the Pearson correlation between all 4 centrality measures
     correlation_matrix = df.corr()
     print(correlation_matrix)
     
-    # --- 7. DELIVERABLE: Centrality Distribution ---
+    # Centrality Distribution 
     
     print("\n" + "="*50)
     print(" DELIVERABLE: CENTRALITY DISTRIBUTION")
@@ -132,14 +131,14 @@ def main():
     
     # Add an overall title
     plt.suptitle("Centrality Distributions (Log Scale)")
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust for suptitle
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])           # Adjust for suptitle
     
-    # Save the plot to a file
+    # Saving plot to a file
     output_fig = "centrality_distributions.png"
     plt.savefig(output_fig)
     print(f"Saved distribution plots to '{output_fig}'")
     
-    # --- 8. Runtime Analysis (Summary Table) ---
+    # Runtime Analysis (Summary Table) 
     
     print("\n" + "="*50)
     print(" DELIVERABLE: RUNTIME ANALYSIS (FULL GRAPH)")
@@ -149,7 +148,7 @@ def main():
     for metric, runtime in runtimes.items():
         print(f"{metric:<18} | {runtime:<15.4f}")
 
-    # --- 9. REAL-WORLD PERSONA ANALYSIS ---
+    # REAL-WORLD PERSONA ANALYSIS 
     
     print("\n" + "="*50)
     print(" DELIVERABLE: REAL-WORLD PERSONA ANALYSIS")

@@ -6,61 +6,61 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def eigenvector_centrality(G, max_iter=100, tol=1.0e-6):
-    """Computes the eigenvector centrality for all nodes using the Power Iteration method."""
+    """Computes the eigenvector centrality for all nodes using the Power Iteration method"""
 
     if len(G) == 0:
         return {}
         
-    # 2) Initialize the centrality vector. Start with all nodes having a score of 1.0.
-    # This is our initial guess, x_0
+    # Initialize the centrality vector ==> start with all nodes having a score of 1
+    # this is our initial guess, x_0
     x = {node: 1.0 for node in G.nodes()}
     
-    # 3) Start the Power Iteration
+    # 3) start the Power Iteration
     for i in range(max_iter):
         
-        # Keep a copy of the old scores to check for convergence
+        # keep a copy of the old scores to check for convergence
         x_old = x.copy()
         
-        # This dictionary will hold the scores for the next iteration (x_{k+1})
+        # dictionary will hold the scores for the next iteration (x_{k+1})
         x_new = {node: 0.0 for node in G.nodes()}
         
-        # This will store the sum of squares for L2 normalization
+        # stores the sum of squares for L2 normalization
         norm_sq = 0.0
         
-        # --- 4. Update Scores ---
-        # This is the main matrix-vector multiplication (A * x_old)
+        # Update Scores
+        # main matrix-vector multiplication (A * x_old)
         for v in G.nodes():
             # Calculate the new score for node 'v'
             for u in G.neighbors(v):
-                # 'v's new score is the sum of its neighbors' *old* scores
+                # 'v's new score is the sum of its neighbors' old scores
                 x_new[v] += x_old[u]
             
             # Add to the sum of squares
             norm_sq += x_new[v]**2
             
-        # --- 5. Normalize Scores ---
+        # Normalize Scores
         norm = math.sqrt(norm_sq)
         if norm == 0:
-            # This handles a graph with no edges
+            # handles a graph with no edges
             return {node: 0.0 for node in G.nodes()}
 
         # Divide all scores by the L2 norm (the "length" of the vector)
         for v in G.nodes():
             x[v] = x_new[v] / norm
             
-        # --- 6. Convergence Check ---
+        # Convergence Check
         
         # Calculate the L1 norm of the difference vector (sum of absolute differences)
         diff_norm_L1 = sum(abs(x[v] - x_old[v]) for v in G.nodes())
         
-        # If the change is smaller than our tolerance, we have converged
+        # If the change is smaller than our tolerance ==> we have converged
         if diff_norm_L1 < tol:
-            return x # Return the converged centrality scores
+            return x        # Return the converged centrality scores
             
-    # If we hit max_i-ter without converging, we raise an error.
-    # This can happen on disconnected graphs if not handled.
+    # If we hit max_i-ter without converging ==> we raise an error
+    # This can happen on disconnected graphs if not handled
     print(f"Warning: Eigenvector centrality did not converge in {max_iter} iterations.")
-    return x # Return the best guess we have
+    return x        # Return the best guess we have
 
 if __name__ == "__main__":
     # Load the complete graph using the function from 'graph.py'

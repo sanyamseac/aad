@@ -4,20 +4,19 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# --- 1. SETUP ---
 
-# Import the 4 centrality functions from your files in this folder
+
+# Import the 4 centrality functions
 from dc import degree_centrality
 from bc import betweenness_centrality
 from cc import closeness_centrality
 from ec import eigenvector_centrality
 
-# This path insertion allows us to import 'graph.py' from the parent 'aad' directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
 def run_all_centralities(G):
-    """Runs all 4 centrality functions and returns their runtimes."""
+    """Runs all 4 centrality functions and returns their runtimes"""
     
     runtimes = {}
     
@@ -44,19 +43,18 @@ def run_all_centralities(G):
     return runtimes
 
 def main():
-    # --- 2. SETUP GRAPH LOADING ---
+    # SETUP GRAPH LOADING
     
-    # Get the absolute path to the dataset folder
     dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
     
-    # Define how many graphs to test. We'll test 10.
-    graph_sizes_to_test = range(1, 11) # This will loop from 1 to 10
+    # Define the no of graphs to test
+    graph_sizes_to_test = range(1, 11)
     
     all_results = []
 
     print("Starting Scalability Analysis...")
 
-    # --- 3. LOOP AND RUN ANALYSIS ---
+    # LOOP AND RUN ANALYSIS 
     
     for num_files in graph_sizes_to_test:
         print(f"\n--- Analyzing Graph with {num_files} ego-network(s) ---")
@@ -115,7 +113,7 @@ def main():
     df.to_csv("scalability_results.csv")
     print("\nResults saved to 'scalability_results.csv'")
 
-    # --- 5. CREATE PLOTS (TIME vs. SIZE) ---
+    # CREATE PLOTS (TIME vs. SIZE) 
     
     if df.empty:
         print("No data to plot. Exiting.")
@@ -153,7 +151,7 @@ def main():
     plt.savefig('scalability_vs_edges.png')
     print("Saved 'scalability_vs_edges.png'")
     
-    # --- 6. CREATE PLOTS (TIME vs. COMPLEXITY) ---
+    # CREATE PLOTS (TIME vs. COMPLEXITY) 
 
     print("Generating Time vs. Complexity plots...")
 
@@ -183,7 +181,7 @@ def main():
     axes[1, 0].grid(True)
 
     # Plot 6: Eigenvector Centrality (Time vs. E)
-    # We plot against E, as O(k*E). We assume k is roughly constant.
+    # We plot against E, as O(k*E) ( assuming k to be roughly constant)
     axes[1, 1].plot(df['Complex_E'], df['Time_Eigenvector'], 'D-m')
     axes[1, 1].set_title('Eigenvector Centrality', fontsize=14)
     axes[1, 1].set_xlabel('Theoretical Complexity: O(k*E)', fontsize=12)
