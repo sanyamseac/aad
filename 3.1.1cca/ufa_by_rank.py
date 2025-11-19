@@ -7,7 +7,7 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
-class UnionFind:
+class UnionFindByRank:
     def __init__(self, nodes):
         self.parent = {node: node for node in nodes}
         self.rank = {node: 0 for node in nodes}
@@ -22,6 +22,7 @@ class UnionFind:
         root_j = self.find(j)
         
         if root_i != root_j:
+            # Union by Rank: Attach smaller rank tree to larger rank tree
             if self.rank[root_i] < self.rank[root_j]:
                 self.parent[root_i] = root_j
             elif self.rank[root_i] > self.rank[root_j]:
@@ -32,23 +33,26 @@ class UnionFind:
             return True
         return False
 
-def run_ufa(G, nodes=None, shuffle_edges=False):
+def run_ufa_rank(G, nodes=None, shuffle_edges=False, custom_edges=None):
     """
-    Runs Union-Find on the graph to identify components.
+    Runs Union-Find (By Rank).
     """
     if nodes is None:
         nodes = list(G.nodes())
         
-    uf = UnionFind(nodes)
+    uf = UnionFindByRank(nodes)
     
-    edges = []
-    for u in G.adj:
-        for v in G.adj[u]:
-            if u < v:
-                edges.append((u, v))
-                
-    if shuffle_edges:
-        random.shuffle(edges)
+    if custom_edges is not None:
+        edges = custom_edges
+    else:
+        edges = []
+        for u in G.adj:
+            for v in G.adj[u]:
+                if u < v:
+                    edges.append((u, v))
+        
+        if shuffle_edges:
+            random.shuffle(edges)
         
     for u, v in edges:
         uf.union(u, v)
@@ -76,7 +80,7 @@ def run_ufa(G, nodes=None, shuffle_edges=False):
     return component_stats, len(edges)
 
 if __name__ == "__main__":
-    print("\n--- Union-Find Standalone Analysis ---")
+    print("\n--- Union-Find (Rank) Standalone Analysis ---")
     try:
         val = input("Enter number of files to use (1-10): ").strip()
         num = int(val)
@@ -88,8 +92,8 @@ if __name__ == "__main__":
     print(f"Loading {num} file(s)...")
     G, _, _, _ = create_complete_graph(num_files=num)
     
-    print(f"Running Union-Find...")
+    print(f"Running Union-Find (Rank)...")
     t0 = time.perf_counter()
-    comps, _ = run_ufa(G)
+    comps, _ = run_ufa_rank(G)
     print(f"Done in {time.perf_counter()-t0:.4f}s.")
     print(f"Found {len(comps)} connected components.")

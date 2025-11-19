@@ -7,20 +7,25 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
-def dfs_traversal(G, start_node, visited, shuffle_children=False):
+def dfs_traversal(G, start_node, visited, shuffle_children=False, custom_adj=None):
     """
-    Performs Depth-First Search (Iterative) to find a connected component.
+    Performs Depth-First Search (Iterative).
+    Args:
+        custom_adj: Optional dictionary of neighbors for Analysis C (Pre-shuffling)
     """
     stack = [start_node]
     visited.add(start_node)
     component_nodes = {start_node}
-    
     max_stack_size = 1
 
     while stack:
         curr = stack.pop()
         
-        neighbors = list(G.adj.get(curr, []))
+        if custom_adj:
+            neighbors = custom_adj.get(curr, [])
+        else:
+            neighbors = list(G.adj.get(curr, []))
+            
         if shuffle_children:
             random.shuffle(neighbors)
             

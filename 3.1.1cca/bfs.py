@@ -8,20 +8,30 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
-def bfs_traversal(G, start_node, visited, shuffle_children=False):
+def bfs_traversal(G, start_node, visited, shuffle_children=False, custom_adj=None):
     """
-    Performs Breadth-First Search to find a connected component.
+    Performs Breadth-First Search.
+    Args:
+        G: NetworkX graph object
+        start_node: Node to start traversal from
+        visited: Set to track visited nodes
+        shuffle_children: Whether to shuffle neighbors (for Order Invariance Analysis)
+        custom_adj: Optional pre-shuffled adjacency list (for Order Invariance Analysis)
     """
     q = deque([start_node])
     visited.add(start_node)
     component_nodes = {start_node}
-    
     max_queue_size = 1
 
     while q:
         curr = q.popleft()
         
-        neighbors = list(G.adj.get(curr, []))
+        # Use custom_adj if provided, else G.adj
+        if custom_adj:
+            neighbors = custom_adj.get(curr, [])
+        else:
+            neighbors = list(G.adj.get(curr, []))
+            
         if shuffle_children:
             random.shuffle(neighbors)
             
@@ -33,6 +43,7 @@ def bfs_traversal(G, start_node, visited, shuffle_children=False):
         
         max_queue_size = max(max_queue_size, len(q))
 
+    # Count internal edges
     edges_in_component = 0
     for node in component_nodes:
         for neighbor in G.adj.get(node, []):
