@@ -1,5 +1,4 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
@@ -62,7 +61,6 @@ def create_complete_graph(num_files=None, dataset_path = os.path.join(sys.path[0
     all_ego_nodes = []
     all_circles = {}
     all_features = {}
-    print("Dataset path:", dataset_path)
     
     # Find all ego network files
     ego_files = glob.glob(os.path.join(dataset_path, "*.edges"))
@@ -128,8 +126,6 @@ def create_complete_graph(num_files=None, dataset_path = os.path.join(sys.path[0
     return G, all_ego_nodes, all_circles, all_features
 
 if __name__ == "__main__":
-    dataset_path = "d:\\aad\\dataset"
-
     print("Loading complete graph from dataset...")
     G, ego_nodes, circles, features = create_complete_graph()
     print("graph", G)
