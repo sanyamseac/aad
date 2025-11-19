@@ -1,24 +1,40 @@
-# Connected Components Analysis (3.1.1cca)
+Connected Components Analysis (3.1.1cca)
 
-This folder contains the implementation and analysis for Connected Components.
+This module implements Connected Components Analysis using BFS, DFS, and two Union-Find variants (Rank and Size) on the Facebook Social Circles dataset. All metrics and algorithms are implemented from scratch, adhering to the "no external libraries for logic" rule.
 
-## Scripts
+1. How to Run
 
-* `analysis.py`: The main analysis script.
-    * **Analysis A & C**: Runs on the **full 10-file dataset**.
-    * **Analysis B**: Iterates 1-10 files to plot time complexity trends vs V, E, V+E, and V*E.
-    * **Analysis D**: Iterates 1-10 files to generate component size distributions for each step.
+A. Full Analysis Suite (Recommended)
 
-* `bfs.py`, `dfs.py`, `ufa.py`: Interactive standalone scripts. Run them to perform a single traversal on a chosen number of files.
+Run the main analysis script to generate all 10+ metric plots and reports in one execution.
 
-## Output
+python analysis.py
 
-Running `python analysis.py` will create:
 
-* **`plots/`**:
-    * `A_Invariance.png`, `C_Order_Invariance.png`
-    * `B_BFS_Complexity_Grid.png`, `B_DFS_Complexity_Grid.png`, `B_UFA_Complexity_Grid.png` (4 subplots each)
-    * `D_1_Distribution.png` ... `D_10_Distribution.png`
-* **`analysis/`**:
-    * `A_Invariance.md`, `C_Order.md`, `B_Complexity.md`
-    * `D_1_Analysis.md` ... `D_10_Analysis.md`
+Pipeline:
+
+Analysis A (Invariance): Validates that BFS/DFS performance is independent of the starting node (100 randomized runs on the full graph).
+
+Analysis B (Complexity): Measures scalability by incrementally loading the dataset (1 to 10 files) and proving $O(V+E)$ complexity for all 4 algorithms (BFS, DFS, UFA-Rank, UFA-Size).
+
+Analysis C (Stability): Tests if the order of neighbor/edge processing affects runtime (using pre-shuffled structures).
+
+Analysis D (Connectivity): Computes 10 distinct network metrics (Density, Clustering, Diameter, etc.) using custom-built algorithms to track network evolution.
+
+B. Interactive Mode
+
+Run any algorithm individually:
+
+python bfs.py
+python dfs.py
+python ufa_by_rank.py
+python ufa_by_size.py
+
+
+2. Outputs (plots/ and analysis/)
+
+Metric Trends: Metric_density.png, Metric_clustering.png, Metric_diameter.png, etc.
+
+Complexity: B_Complexity_Grid.png for all algorithms.
+
+Reports: D_Connectivity_Analysis.md (Full data log), `B_Complexity

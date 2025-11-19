@@ -11,7 +11,11 @@ def dfs_traversal(G, start_node, visited, shuffle_children=False, custom_adj=Non
     """
     Performs Depth-First Search (Iterative).
     Args:
-        custom_adj: Optional dictionary of neighbors for Analysis C (Pre-shuffling)
+        G: NetworkX graph object
+        start_node: Node to start traversal from
+        visited: Set to track visited nodes
+        shuffle_children: Whether to shuffle neighbors (for Order Invariance Analysis)
+        custom_adj: Optional pre-shuffled adjacency list (for Order Invariance Analysis)
     """
     stack = [start_node]
     visited.add(start_node)

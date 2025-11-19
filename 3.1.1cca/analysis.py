@@ -34,7 +34,7 @@ def calculate_density(V, E):
 
 def calculate_clustering_coefficient(G):
     """
-    Calculates Average Clustering Coefficient.
+    Calculates Average Clustering Coefficient from scratch.
     Logic: For each node, fraction of neighbor pairs that are connected.
     """
     total_coef = 0
@@ -62,7 +62,7 @@ def calculate_clustering_coefficient(G):
 
 def calculate_path_metrics(G, component_nodes):
     """
-    Calculates Diameter and Average Path Length using BFS.
+    Calculates Diameter and Average Path Length using BFS from scratch.
     Uses sampling (100 nodes) to ensure performance on large graphs.
     """
     nodes = list(component_nodes)
@@ -75,9 +75,10 @@ def calculate_path_metrics(G, component_nodes):
     
     max_eccentricity = 0
     total_path_sum = 0
+    total_pairs = 0
     
     for start_node in sources:
-        # BFS for Shortest Paths
+        # BFS for Shortest Paths from start_node
         q = deque([(start_node, 0)])
         visited = {start_node}
         local_max_dist = 0
@@ -85,7 +86,7 @@ def calculate_path_metrics(G, component_nodes):
         while q:
             curr, dist = q.popleft()
             local_max_dist = max(local_max_dist, dist)
-            total_path_sum += dist # Sum of distances from start_node
+            total_path_sum += dist 
             
             for neighbor in G.adj[curr]:
                 if neighbor in component_nodes and neighbor not in visited:
@@ -93,10 +94,10 @@ def calculate_path_metrics(G, component_nodes):
                     q.append((neighbor, dist + 1))
         
         max_eccentricity = max(max_eccentricity, local_max_dist)
+        total_pairs += (len(visited) - 1)
     
     # Avg Path = Total Distance / Pairs Checked
-    # Pairs Checked = sample_size * (n - 1)
-    avg_path = total_path_sum / (sample_size * (n - 1))
+    avg_path = total_path_sum / total_pairs if total_pairs > 0 else 0
     
     return max_eccentricity, avg_path
 
@@ -210,7 +211,7 @@ def run_analysis_C():
     G, _, _, _ = create_complete_graph(num_files=10)
     start = list(G.nodes())[0]
     
-    # Pre-calculate shuffled structures
+    # Pre-calculate shuffled structures to exclude overhead
     adj_norm = {n: list(G.adj[n]) for n in G}
     adj_shuf = {n: random.sample(list(G.adj[n]), len(G.adj[n])) for n in G}
     edges = []
@@ -263,6 +264,11 @@ def run_full_connectivity_analysis():
     report_path = os.path.join(ANALYSIS_DIR, 'D_Connectivity_Analysis.md')
     with open(report_path, 'w') as f:
         f.write("# Comprehensive Network Connectivity Analysis\n\n")
+        f.write("## Metric Definitions\n")
+        f.write("- **Density:** Ratio of actual edges to possible edges.\n")
+        f.write("- **Clustering Coefficient:** Measure of the degree to which nodes cluster together.\n")
+        f.write("- **Giant Component (GC):** The largest connected subgraph.\n")
+        f.write("- **Diameter:** Longest shortest path in the GC.\n\n")
         f.write("## Detailed Data Log\n\n")
 
     for i in range(1, 11):
@@ -333,8 +339,8 @@ def run_full_connectivity_analysis():
         ("num_components", "Connected Components", "Count", "linear"),
         ("gc_size_nodes", "Giant Component Size (Nodes)", "Nodes", "linear"),
         ("gc_coverage", "GC Coverage", "Percent", "linear"),
-        ("diameter", "Network Diameter (Est)", "Hops", "linear"),
-        ("avg_path", "Avg Path Length (Est)", "Steps", "linear")
+        ("diameter", "Network Diameter (Est)", "Network Diameter", "linear"), # Updated Label
+        ("avg_path", "Avg Path Length (Est)", "Avg Path Length", "linear")   # Updated Label
     ]
 
     for key, title, ylabel, scale in plot_specs:

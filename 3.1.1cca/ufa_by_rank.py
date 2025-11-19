@@ -22,7 +22,6 @@ class UnionFindByRank:
         root_j = self.find(j)
         
         if root_i != root_j:
-            # Union by Rank: Attach smaller rank tree to larger rank tree
             if self.rank[root_i] < self.rank[root_j]:
                 self.parent[root_i] = root_j
             elif self.rank[root_i] > self.rank[root_j]:
@@ -34,12 +33,7 @@ class UnionFindByRank:
         return False
 
 def run_ufa_rank(G, nodes=None, shuffle_edges=False, custom_edges=None):
-    """
-    Runs Union-Find (By Rank).
-    """
-    if nodes is None:
-        nodes = list(G.nodes())
-        
+    if nodes is None: nodes = list(G.nodes())
     uf = UnionFindByRank(nodes)
     
     if custom_edges is not None:
@@ -48,11 +42,8 @@ def run_ufa_rank(G, nodes=None, shuffle_edges=False, custom_edges=None):
         edges = []
         for u in G.adj:
             for v in G.adj[u]:
-                if u < v:
-                    edges.append((u, v))
-        
-        if shuffle_edges:
-            random.shuffle(edges)
+                if u < v: edges.append((u, v))
+        if shuffle_edges: random.shuffle(edges)
         
     for u, v in edges:
         uf.union(u, v)
@@ -60,8 +51,7 @@ def run_ufa_rank(G, nodes=None, shuffle_edges=False, custom_edges=None):
     components_map = {}
     for node in nodes:
         root = uf.find(node)
-        if root not in components_map:
-            components_map[root] = []
+        if root not in components_map: components_map[root] = []
         components_map[root].append(node)
         
     component_stats = []
@@ -72,28 +62,18 @@ def run_ufa_rank(G, nodes=None, shuffle_edges=False, custom_edges=None):
             for neighbor in G.adj.get(node, []):
                 if neighbor in comp_node_set and node < neighbor:
                     edges_count += 1
-        component_stats.append({
-            "nodes": len(comp_node_set),
-            "edges": edges_count
-        })
+        component_stats.append({"nodes": len(comp_node_set), "edges": edges_count})
         
     return component_stats, len(edges)
 
 if __name__ == "__main__":
-    print("\n--- Union-Find (Rank) Standalone Analysis ---")
+    print("\n--- Union-Find (Rank) Standalone ---")
     try:
-        val = input("Enter number of files to use (1-10): ").strip()
+        val = input("Files (1-10): ").strip()
         num = int(val)
         if not (1 <= num <= 10): raise ValueError
-    except ValueError:
-        print("Invalid input. Using 1 file.")
-        num = 1
-        
-    print(f"Loading {num} file(s)...")
+    except: num = 1
     G, _, _, _ = create_complete_graph(num_files=num)
-    
-    print(f"Running Union-Find (Rank)...")
     t0 = time.perf_counter()
     comps, _ = run_ufa_rank(G)
-    print(f"Done in {time.perf_counter()-t0:.4f}s.")
-    print(f"Found {len(comps)} connected components.")
+    print(f"Done in {time.perf_counter()-t0:.4f}s. {len(comps)} components.")
