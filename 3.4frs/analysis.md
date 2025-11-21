@@ -1,459 +1,248 @@
 # Friend Recommendation Systems – Comprehensive Analysis
 
-In this section, we analyze seven link prediction algorithms for
-friend recommendation on the Facebook Ego Network: five heuristic methods
-(Common Neighbors, Jaccard Coefficient, Adamic–Adar, Preferential Attachment,
-Resource Allocation) and two embedding-based methods (DeepWalk, Node2Vec).
-Our goal is to compare their accuracy, runtime, and practical suitability for
-real-world social networks.
+This document provides a structured, end‑to‑end analysis of seven link prediction / friend recommendation algorithms applied to the Facebook Ego Network. It covers methodology, per‑algorithm deep dives (definition, correctness, complexity, empirical validation, strengths/weaknesses), comparative results, reproducibility steps, and scholarly citations.
 
-## 1. What are we doing in this section?
+---
 
-We design, implement, and evaluate multiple graph-based friend recommendation
-algorithms on the complete Facebook ego-network dataset. For each algorithm,
-we:
+## 1. What Are We Doing?
+We implement and evaluate multiple graph‑based friend recommendation algorithms on a combined Facebook ego‑network. For each algorithm we:
 
-- Implement the scoring function from scratch in Python.
-- Generate top‑k friend recommendations.
-- Measure precision, recall, F1‑score, and runtime.
-- Compare their performance and trade‑offs.
+- Implement the scoring function (heuristics from scratch; embeddings via random walks + Skip‑Gram)
+- Generate top‑k recommendations for sampled nodes
+- Measure Precision, Recall, F1, ROC‑AUC, MAP, runtime, memory
+- Compare theoretical vs observed runtime trends
 
-## 2. How is this related to the practical world?
+## 2. Practical Relevance
+“People You May Know” systems rely on predicting plausible future edges. Heuristics (CN, JC, AA, PA, RA) give interpretable, low‑latency baselines; DeepWalk / Node2Vec embeddings capture higher‑order and structural patterns used in production social, content, and professional graphs.
 
-Modern social platforms (Facebook, LinkedIn, Instagram, etc.) rely heavily on
-“People You May Know” systems. A common and robust way to build such systems is
-to treat the social network as a graph and predict missing edges. The
-heuristic algorithms we study (CN, JC, AA, PA, RA) are classic link prediction
-methods used in graph mining, and the embedding-based algorithms (DeepWalk and
-Node2Vec) represent modern random-walk-based representation learning methods
-used in industry.
-
-## 3. How are we getting our results?
-
-- We construct a combined Facebook ego-network graph using `graph.py` and the
-   original SNAP dataset.
-- We perform an 80–20 train–test split over edges.
-- We sample a subset of nodes and generate top‑k recommendations for each of
-   them using each algorithm.
-- We compare predicted edges against held‑out test edges to compute
-   precision/recall/F1.
-- We log runtimes and generate plots using `3.4frs/analysis.py`, which writes
-   all figures into `3.4frs/results/`.
+## 3. Methodology Overview
+1. Build graph via `graph.py` (SNAP Facebook ego circles merged)  
+2. 80/20 edge train–test split; sample equal count random non‑edges for negatives  
+3. Sample nodes (e.g. 50 for scalability; larger set for aggregate metrics)  
+4. Run `recommend_friends` (heuristics) or embedding similarity ranking  
+5. Compute Precision, Recall, F1, ROC‑AUC (sampled), MAP; gather runtime & memory  
+6. Plot scalability, performance, and theoretical vs actual complexity in `results/`
 
 ## Dataset: Facebook Ego Network
-
-- **Total Nodes**: 4,039 users
-- **Total Edges**: 88,234 friendships  
-- **Ego Nodes**: 10 central users
-- **Source**: Facebook social circles dataset
+| Property | Value |
+|----------|-------|
+| Total Nodes | 4,039 |
+| Total Edges | 88,234 |
+| Ego Nodes | 10 |
+| Source | SNAP Facebook social circles (McAuley & Leskovec 2012) |
 
 ---
 
 ## 4. Algorithms Implemented
+We group algorithms into heuristics and embedding‑based methods.
 
-We implement two families of algorithms:
+### 4.1 Heuristic‑Based Methods
 
-### 4.1 Heuristic-based methods
+- **Common Neighbors (CN)**  
+   $\text{CN}(u,v) = |N(u) \cap N(v)|$
 
-1. **Common Neighbors (CM)** – baseline that counts mutual friends:  
-   \( \text{CN}(u,v) = |N(u) \cap N(v)| \).
+- **Jaccard Coefficient (JC)**  
+   $\text{JC}(u,v) = \dfrac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|}$
 
-2. **Jaccard Coefficient (JC)** – normalizes common neighbors by total distinct
-   neighbors:  
-   \( \text{JC}(u,v) = \frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|} \).
+- **Adamic–Adar (AA)**  
+   $\text{AA}(u,v) = \sum_{w \in N(u) \cap N(v)} \dfrac{1}{\log(\deg(w))}$
 
-3. **Adamic–Adar Index (AA)** – weights rare common friends more:  
-   \( \text{AA}(u,v) = \sum_{w \in N(u)\cap N(v)} \frac{1}{\log(\deg(w))} \).
+- **Preferential Attachment (PA)**  
+   $\text{PA}(u,v) = \deg(u)\,\deg(v)$
 
-4. **Preferential Attachment (PA)** – assumes popular users attract more links:  
-   \( \text{PA}(u, v) = \deg(u) \cdot \deg(v) \).
+- **Resource Allocation (RA)**  
+   $\text{RA}(u,v) = \sum_{w \in N(u) \cap N(v)} \dfrac{1}{\deg(w)}$
 
-5. **Resource Allocation (RA)** – similar to AA but uses 1/deg(w) instead of
-   1/log(deg(w)):  
-   \( \text{RA}(u, v) = \sum_{w \in N(u) \cap N(v)} \frac{1}{\deg(w)} \).
-
-### 4.2 Embedding-based methods
-
-6. **DeepWalk (DW)** – runs uniform random walks on the graph and trains a
-   Word2Vec model to obtain node embeddings; link scores are cosine similarity
-   between embeddings.
-
-7. **Node2Vec (NV)** – similar to DeepWalk but uses biased (p, q)-controlled
-   random walks to interpolate between breadth-first and depth-first
-   exploration, often capturing better structural roles.
+### 4.2 Embedding‑Based Methods
+6. DeepWalk (DW): Uniform random walks → Skip‑Gram → Embeddings → Cosine similarity.
+7. Node2Vec (NV): Biased (p,q) random walks balancing BFS (community) vs DFS (structural roles) → Skip‑Gram → Embeddings → Cosine similarity.
 
 ---
 
-## 5. Adamic–Adar Index (AA)
+## 5. Per‑Algorithm Detailed Analysis
 
-### 5.1 Description and history
+Each subsection follows the required template:
+1. Description & (brief) history
+2. High‑level working
+3. Proof of correctness (implementation vs formula)
+4. Time & Space complexity (theoretical) + empirical runtime vs theory
+5. Deliverables & insights
+6. Strengths, weaknesses, ideal use cases
+7. Plots / references to comparative visualizations
 
-The Adamic–Adar index was proposed by Lada Adamic and Eytan Adar (2003) as a
-measure of similarity in social networks and the web graph. It extends the
-Common Neighbors heuristic by down‑weighting “popular” nodes that connect to
-many users, and emphasizing rare shared connections.
+### 5.1 Common Neighbors (CN)
+| Aspect | Details |
+|--------|---------|
+| Description | Classical triadic closure heuristic; counts mutual friends |
+| Working | Score = size of intersection of neighbor sets |
+| Correctness | Set intersection cardinality implements $|N(u) \cap N(v)|$ exactly |
+| Complexity | Pair: $O(\deg(u)+\deg(v))$; node recommendation: $O(n\,\overline{d})$ |
+| Empirical | Near‑linear runtime vs candidate count; theory vs actual curves align |
+| Strengths | Fast, interpretable, minimal overhead |
+| Weaknesses | Hub bias; no normalization |
+| Ideal Use | Ultra‑low latency baseline generation |
+| Plots | `performance_metrics_vs_size.png`, `scalability_analysis.png` |
+| Insight | Strong baseline; often similar top sets to AA/RA |
 
-### 5.2 High‑level working
+### 5.2 Jaccard Coefficient (JC)
+| Aspect | Details |
+|--------|---------|
+| Description | Set overlap ratio; penalizes large unions |
+| Working | $\text{JC}(u,v)=\frac{|N(u)\cap N(v)|}{|N(u)\cup N(v)|}$ |
+| Correctness | Directly computes intersection & union sets; guarded for empty union |
+| Complexity | Same asymptotics as CN; slightly higher constant (union) |
+| Empirical | Slightly slower than CN; lower precision/F1 in sparse graph |
+| Strengths | Degree normalization reduces hub inflation |
+| Weaknesses | Tiny scores; reduced discrimination; still local |
+| Ideal Use | Denser graphs with balanced degree distribution |
+| Plots | `algorithm_comparison.png` (lower F1), complexity plot stable |
+| Insight | Normalization helpful but outweighed by sparsity effects here |
 
-For two users \(u\) and \(v\):
+### 5.3 Adamic–Adar (AA)
+| Aspect | Details |
+|--------|---------|
+| Description | Weights rare mutual neighbors more (Adamic & Adar 2003) |
+| Working | $\sum_{w \in N(u)\cap N(v)} 1/\log(\deg(w))$ (skip $\deg=1$) |
+| Correctness | Loop computes weighted sum exactly; reflects definition |
+| Complexity | Same order as CN; log factor constant overhead |
+| Empirical | Near top F1; modest runtime increase over CN |
+| Strengths | Better ranking quality; mitigates hub dominance |
+| Weaknesses | Local only; log undefined at degree 1 (skip rule) |
+| Ideal Use | Skewed degree distributions (celebrity effects) |
+| Plots | Strong precision/recall curves; complexity alignment |
+| Insight | Effective trade‑off between accuracy and simplicity |
 
-- Find all common friends \(w \in N(u)\cap N(v)\).
-- For each common friend \(w\), compute its degree \(\deg(w)\).
-- Add a contribution of \(1/\log(\deg(w))\) to the score.
-- Sum these contributions to obtain \(\text{AA}(u,v)\).
+### 5.4 Preferential Attachment (PA)
+| Aspect | Details |
+|--------|---------|
+| Description | Barabási–Albert inspired degree‑product heuristic |
+| Working | $\deg(u)\times \deg(v)$ |
+| Correctness | Direct degree product; no intersection step |
+| Complexity | Pair $O(1)$; node recommendation $O(n)$ |
+| Empirical | Fastest heuristic; lower precision due to hub bias |
+| Strengths | Extremely low latency; trivial to compute |
+| Weaknesses | Over‑recommends high‑degree nodes; ignores mutuality |
+| Ideal Use | Pre‑filter candidate expansion stage |
+| Plots | Minimal runtime; moderate F1 in comparisons |
+| Insight | Best when speed outweighs accuracy needs |
 
-In our implementation (`aa.py`), we:
+### 5.5 Resource Allocation (RA)
+| Aspect | Details |
+|--------|---------|
+| Description | Diffusion‑inspired heuristic (Zhou et al. 2009) |
+| Working | $\sum_{w \in N(u)\cap N(v)} 1/\deg(w)$ |
+| Correctness | Reciprocal degree accumulation; matches definition |
+| Complexity | Same as AA/CN; division constant factor |
+| Empirical | Often top F1 at $k=10$; runtime comparable to AA |
+| Strengths | Penalizes hubs strongly; high ranking quality |
+| Weaknesses | Degree‑1 neighbors contribute 1 (potential noise) |
+| Ideal Use | High precision required; hub suppression scenarios |
+| Plots | F1 leader in `algorithm_comparison.png` |
+| Insight | Strongest pure heuristic under tested settings |
 
-- Use NetworkX to obtain neighbors and degrees.
-- Iterate over common neighbors and accumulate the weighted sum.
-- Use this score to rank non‑friends as candidate recommendations.
+### 5.6 DeepWalk (DW)
+| Aspect | Details |
+|--------|---------|
+| Description | Uniform random walk embeddings (Perozzi et al. 2014) |
+| Working | Walk corpus → Skip‑Gram → node vectors → cosine similarity |
+| Correctness | Follows published pipeline; similarity reflects proximity |
+| Complexity | Train $O(|V|\cdot \text{num\_walks}\cdot \text{walk\_length})$; inference $O(n)$ per node |
+| Empirical | Higher runtime due to embedding; improved recall potential |
+| Strengths | Captures higher‑order structure & communities |
+| Weaknesses | Training overhead; parameter tuning |
+| Ideal Use | Batch/offline generation with richer features |
+| Plots | Appears in embedding vs heuristic comparisons |
+| Insight | Adds structural nuance beyond local heuristics |
 
-### 5.3 Proof of correctness (informal)
-
-Correctness here means “the implementation matches the mathematical
-definition”.
-
-- We compute `neighbors_u` and `neighbors_v` exactly as \(N(u)\) and \(N(v)\).
-- We intersect them to obtain \(N(u)\cap N(v)\).
-- For each \(w\) in this intersection, we compute `degree_w = graph.degree(w)`
-   which equals \(\deg(w)\).
-- We add `1 / log(degree_w)` to the score, which directly corresponds to the
-   theoretical formula.
-
-On small test graphs, we compared our implementation against NetworkX’s
-`adamic_adar_index` on the same graph and obtained identical scores,
-confirming that the implementation is correct.
-
-### 5.4 Time and space complexity
-
-Let \(n = |V|\) and \(m = |E|\), and let \(\deg(u)\) be the degree of node
-\(u\).
-
-- **Single AA score for one pair \((u,v)\)**:
-   - We compute neighbors of \(u\) and \(v\) and intersect them.
-   - This costs \(O(\deg(u) + \deg(v))\) to build sets and
-      \(O(\min(\deg(u), \deg(v)))\) to intersect.
-   - **Time**: \(O(\deg(u) + \deg(v))\).
-   - **Space**: \(O(\deg(u) + \deg(v))\).
-
-- **`predict_links_for_node`**:
-   - For one node, we evaluate all other nodes as candidates.
-   - In the worst case this is \(O(n)\) candidates, each costing
-      \(O(\deg(u) + \deg(v))\).
-   - **Time**: \(O(n \cdot \overline{d})\), where \(\overline{d}\) is
-      average degree.
-   - **Space**: \(O(n)\) to store scores.
-
-- **`predict_all_links` (all non‑edges)**:
-   - Loops over all unordered pairs of nodes ⇒ \(O(n^2)\) pairs.
-   - Each AA score is \(O(\overline{d})\).
-   - **Time**: \(O(n^2 \cdot \overline{d})\) (expensive on large graphs).
-   - **Space**: Up to \(O(n^2)\) scores in the worst case.
-
-#### Experimental runtime vs theoretical
-
-In `analysis.py`, for each algorithm we fix the graph and vary \(k\) (top‑k
-recommendations). For sampled nodes, runtime grows roughly linearly with \(k\)
-because we compute and sort more scores per node. The plots
-`recommendation_performance_analysis.png` show runtime vs \(k\) for AA, CM,
-and JC. The AA curve is almost a straight line, consistent with the
-theoretical \(O(k)\) behavior when the number of sampled nodes and graph are
-fixed.
-
-### 5.5 Deliverables and insights
-
-- Implementation: `3.4frs/aa.py` (scoring, recommendation, evaluation, and
-   explainability helpers).
-- AA achieves the **highest precision, recall, and F1‑score** across all
-   tested \(k\) values.
-- It identifies similar top candidates as Common Neighbors but ranks them more
-   intelligently by emphasizing rare mutual friends.
-
-### 5.6 Strengths, weaknesses, ideal use‑cases
-
-- **Strengths**
-   - Outperforms CN and JC in F1‑score.
-   - Robust against “hub” nodes with very high degree.
-   - Simple to implement and explain mathematically.
-
-- **Weaknesses**
-   - Slightly more expensive than Common Neighbors.
-   - Still a local heuristic; does not consider long paths or features.
-
-- **Ideal use‑cases**
-   - Social networks where some users are extremely popular (celebrity effect).
-   - When you want better ranking quality than CN but still a simple algorithm.
-
-### 5.7 Plots and comparisons
-
-AA is included in the following plots generated by `analysis.py`:
-
-- Precision vs \(k\), Recall vs \(k\), F1 vs \(k\), Runtime vs \(k\)
-   (`recommendation_performance_analysis.png`).
-- Bar charts at a fixed \(k\) (we use \(k=10\) in the final experiments)
-   comparing all seven algorithms
-   (`algorithm_comparison.png`).
-
-Across these visualizations, AA consistently outperforms the other
-heuristic methods (CM, JC, PA, RA) on F1‑score while staying competitive in
-runtime.
+### 5.7 Node2Vec (NV)
+| Aspect | Details |
+|--------|---------|
+| Description | Biased walk embeddings with $(p,q)$ controls (Grover & Leskovec 2016) |
+| Working | Second‑order biased walks → Skip‑Gram → cosine similarity |
+| Correctness | Transition bias & embedding training match spec |
+| Complexity | Similar to DeepWalk with bias overhead; proportional to walk tokens |
+| Empirical | Walk parameter tuning changes recall/runtime trade‑offs |
+| Strengths | Interpolates BFS (homophily) / DFS (structural roles) |
+| Weaknesses | Parameter sensitivity; higher training cost |
+| Ideal Use | Role/community aware recommendations in large graphs |
+| Plots | `nv_hyperparameter_pq.png`, `nv_hyperparameter_walks.png`, `nv_vs_heuristics.png` |
+| Insight | Most flexible; rewards careful hyperparameter tuning |
 
 ---
 
-## 6. Common Neighbors (CM)
+## 6. Theoretical vs Actual Complexity (Unified View)
+Heuristic per‑node recommendation (scanning all candidates) theoretical costs:
 
-### 6.1 Description and history
+| Algorithm | Theoretical Cost | Notes |
+|-----------|------------------|-------|
+| CN / JC / AA / RA | $O(n\,\overline{d})$ | Set builds & intersections dominate |
+| PA | $O(n)$ | Degree lookups only |
 
-Common Neighbors is one of the oldest and simplest link prediction heuristics.
-It assumes that two users are more likely to be friends if they share many
-mutual friends.
+Normalized theoretical vs empirical runtime lines (`theoretical_vs_actual_complexity.png`) form near‑parallel increasing trends (expected). Minor deviations stem from Python interpreter overhead & memory locality. Ratio (Actual/Theoretical) remains approximately constant, supporting adequacy of coarse models.
 
-### 6.2 High‑level working
-
-For two users \(u\) and \(v\):
-
-- Compute \(N(u)\) and \(N(v)\), the sets of neighbors.
-- Count \(|N(u) \cap N(v)|\), the number of mutual friends.
-- Use this count as the score: higher count ⇒ stronger recommendation.
-
-In `cm.py`, we:
-
-- Build neighbor sets using NetworkX.
-- Intersect them to count common neighbors.
-- Rank non‑neighbors of a node by this score to generate recommendations.
-
-### 6.3 Proof of correctness (informal)
-
-The implementation directly computes \(N(u) \cap N(v)\) via set intersection
-and returns its cardinality. This exactly matches the theoretical definition
-of the Common Neighbors score, so the implementation is correct.
-
-### 6.4 Time and space complexity
-
-- **Single CN score**: \(O(\deg(u) + \deg(v))\) time, \(O(\deg(u)+\deg(v))\)
-   space.
-- **`predict_links_for_node`**: \(O(n \cdot \overline{d})\) time,
-   \(O(n)\) space.
-- **`predict_all_links`**: \(O(n^2 \cdot \overline{d})\) time,
-   \(O(n^2)\) space.
-
-Experimentally, the runtime vs \(k\) curve for CM is almost linear and lies
-slightly below AA, confirming the theoretical expectation that CM is the
-fastest of the three.
-
-### 6.5 Deliverables and insights
-
-- Implementation: `3.4frs/cm.py`.
-- Serves as a strong and very fast baseline.
-- Often recommends the same top candidates as AA, but with slightly less
-   nuanced ranking.
-
-### 6.6 Strengths, weaknesses, ideal use‑cases
-
-- **Strengths**: simplest to understand, fastest in practice, no parameters.
-- **Weaknesses**: treats all common neighbors equally; sensitive to high-degree
-   nodes.
-- **Ideal use‑cases**: when latency is critical and a simple baseline is
-   sufficient.
-
-### 6.7 Plots and comparisons
-
-CM appears in all the same plots as AA. It is consistently slightly faster but
-slightly less accurate than AA.
+Observed speed ordering: PA < CN ≈ JC < AA ≈ RA < (DW/NV training phases).
 
 ---
 
-## 7. Jaccard Coefficient (JC)
+## 7. Comparative Summary (All Algorithms)
+Key observations (see `algorithm_comparison.png`, `performance_metrics_vs_size.png`, `nv_vs_heuristics.png`):
 
-### 7.1 Description and history
+| Metric | Strongest Heuristic | Embedding Advantage |
+|--------|---------------------|---------------------|
+| Precision | AA / RA | Slight gains possible with tuned NV; sometimes lower |
+| Recall | RA / AA | NV often improves recall with exploratory walks |
+| F1 | RA (k=10) | NV competitive; benefits from walk length tuning |
+| Runtime | PA (fastest) | Embeddings cost dominated by training |
+| MAP | AA / RA | NV can match/exceed with balanced $(p,q)$ |
 
-The Jaccard Coefficient is a classic similarity measure used in information
-retrieval and set similarity. In graphs, it measures the fraction of neighbors
-that two nodes share.
-
-### 7.2 High‑level working
-
-For two users \(u\) and \(v\):
-
-- Compute \(N(u)\) and \(N(v)\).
-- Compute intersection and union: \(N(u) \cap N(v)\) and \(N(u) \cup N(v)\).
-- Score is \(|N(u) \cap N(v)| / |N(u) \cup N(v)|\).
-
-### 7.3 Proof of correctness (informal)
-
-In `jc.py`, we build neighbor sets, compute their intersection and union, and
-return the ratio of their sizes. This is exactly the theoretical Jaccard
-definition, so the implementation is correct.
-
-### 7.4 Time and space complexity
-
-- **Single JC score**: \(O(\deg(u) + \deg(v))\) time for intersection and
-   union; \(O(\deg(u)+\deg(v))\) space.
-- Higher-level functions (`predict_links_for_node`, `predict_all_links`) have
-   the same asymptotic complexity as CM and AA.
-
-Experimentally, JC is slightly slower than AA and CM because it builds both
-intersection and union sets.
-
-### 7.5 Deliverables and insights
-
-- Implementation: `3.4frs/jc.py`.
-- JC normalizes by union size, which can severely penalize high-degree nodes
-   in sparse networks.
-
-### 7.6 Strengths, weaknesses, ideal use‑cases
-
-- **Strengths**: scale-invariant; accounts for total neighborhood size.
-- **Weaknesses**: underperforms on this sparse Facebook graph; scores become
-   extremely small and hard to distinguish.
-- **Ideal use‑cases**: denser graphs or domains where relative overlap matters
-   more than raw counts.
-
-### 7.7 Plots and comparisons
-
-In both the performance vs \(k\) plots and the bar charts at \(k=10\), JC is
-dominated by AA, CM, PA, and RA in F1‑score and precision.
+Trade‑offs: RA/AA yield strong precision–recall locally; NV enhances recall & structural nuance at higher cost; PA ideal as rapid prefilter.
 
 ---
 
-## 8. Comparative Analysis of Heuristic Algorithms (AA, CM, JC)
-
-### 8.1 Methodology
-
-- **Train–test split**: 80% training edges and 20% test edges.
-- **Evaluation**: sampled 200 nodes for efficiency.
-- **Metrics**: Precision, Recall, F1‑Score, runtime.
-- **k values tested**: 5 and 10.
-
-Recall is calculated **relative to test edges incident to the sampled
-nodes** (i.e., edges that are actually discoverable by our evaluation), not
-the entire test set.
-
-### 8.2 Performance at k=10 (heuristics)
-
-At \(k=10\), Resource Allocation achieved the highest F1‑score among the
-heuristic methods, with Adamic–Adar and Preferential Attachment close behind.
-Jaccard consistently lagged in both precision and F1‑score.
-
-### 8.3 Performance across multiple k values
-
-For all five heuristic algorithms we observe the expected pattern:
-
-- Precision decreases when moving from \(k=5\) to \(k=10\) (more
-   recommendations ⇒ more false positives).
-- Recall increases over the same range (more true edges are recovered).
-- F1‑score typically peaks around \(k=10\), which we use as our main
-   comparison point.
-
-### 8.4 Runtime analysis (heuristics)
-
-Common Neighbors and Preferential Attachment are the fastest algorithms,
-followed closely by Adamic–Adar and Resource Allocation. Jaccard is slightly
-slower because it computes both intersection and union sets for each pair.
-
-### 8.5 Precision–recall trade‑off
-
-- **Lower k (k=5)**: higher precision, lower recall (few but very confident
-   recommendations).
-- **Higher k (k=10)**: lower precision, higher recall (better coverage).
-
-Overall we find \(k=10\) to be a good operating point for comparing
-algorithms on this dataset.
+## 8. Steps to Reproduce
+1. Install dependencies: `networkx`, `numpy`, `pandas`, `matplotlib`, `psutil`, `scikit-learn`, `questionary`, `gensim`.
+2. Run analyses:
+   ```bash
+   cd 3.4frs
+   python analysis.py      # Heuristics + scalability + complexity
+   python nv_analysis.py   # Node2Vec hyperparameters & comparisons
+   ```
+3. Review outputs in `3.4frs/results/` (CSV + PNG).
+4. Adjust `TOP_K`, sample sizes, or hyperparameters for experiments.
 
 ---
 
-## 9. Embedding-based Methods: DeepWalk and Node2Vec
-
-### 9.1 How they work (high level)
-
-- **DeepWalk**:
-   - Perform many uniform random walks on the graph.
-   - Treat each walk as a sentence and each node as a word.
-   - Train a skip-gram Word2Vec model to learn an embedding for each node.
-   - Score potential links by cosine similarity between node embeddings.
-
-- **Node2Vec**:
-   - Uses the same Word2Vec training, but changes how walks are generated.
-   - Biased random walks controlled by parameters \(p\) and \(q\):
-      - Returning to the previous node is weighted by \(1/p\).
-      - Staying close in the graph vs exploring far is controlled by \(q\).
-   - This allows interpolation between BFS-like (community) and DFS-like
-      (structural) behavior.
-
-### 9.2 Implementation in this project
-
-- `dw.py`:
-   - `generate_random_walks` – uniform walks for DeepWalk.
-   - `train_deepwalk_embeddings` – trains Word2Vec and returns `node -> vector`.
-   - `predict_links_for_node` – uses cosine similarity to rank non-neighbors.
-
-- `nv.py`:
-   - `_node2vec_next_step` – Node2Vec transition rule using \(p, q\).
-   - `generate_node2vec_walks` and `train_node2vec_embeddings` – biased walks
-      and training.
-   - `predict_links_for_node` – same interface as DeepWalk but using
-      Node2Vec embeddings.
-
-In `analysis.py`, we train embeddings **once** on the train graph and then
-wrap the predictors so they can be evaluated via the same
-`evaluate_algorithm_detailed` sampling framework used for the heuristics.
-
-### 9.3 Qualitative expectations
-
-- DeepWalk and Node2Vec can capture longer-range structural patterns, not just
-   immediate neighbors.
-- On sparse graphs with community structure (like social networks), they
-   usually:
-   - Achieve competitive or better recall than simple heuristics.
-   - Have higher runtime due to embedding training.
-
-In practice, for this project we mostly focus on using them as a
-demonstration of modern embedding-based link prediction rather than fully
-optimizing hyperparameters.
+## 9. Citations
+Primary algorithm and dataset references:
+1. Adamic, L. A., & Adar, E. (2003). Friends and neighbors on the Web. Social Networks, 25(3), 211–230.
+2. Jaccard, P. (1901). Étude comparative de la distribution florale... Bulletin de la Société Vaudoise des Sciences Naturelles.
+3. Barabási, A.-L., & Albert, R. (1999). Emergence of scaling in random networks. Science, 286(5439), 509–512.
+4. Zhou, T., Lü, L., & Zhang, Y.-C. (2009). Predicting missing links via local information. Eur. Phys. J. B 71, 623–630. (Resource Allocation index)
+5. Perozzi, B., Al-Rfou, R., & Skiena, S. (2014). DeepWalk: Online learning of social representations. KDD.
+6. Grover, A., & Leskovec, J. (2016). node2vec: Scalable feature learning for networks. KDD.
+7. McAuley, J., & Leskovec, J. (2012). Learning to discover social circles in ego networks. NIPS (SNAP Facebook dataset).
+8. Newman, M. E. J. (2010). Networks: An Introduction. Oxford University Press.
 
 ---
 
-## 10. Steps to Reproduce
-
-1. Ensure Python 3.12 and required libraries are installed:
-    - `networkx`
-    - `numpy`
-    - `pandas`
-    - `matplotlib`
-
-2. From the repository root, run the friend recommendation analysis:
-
-    ```bash
-    cd 3.4frs
-    python analysis.py
-    ```
-
-3. The script will:
-      - Load the combined graph from `../dataset` using `graph.py`.
-      - Perform an 80–20 train–test edge split.
-      - Evaluate AA, CM, JC, PA, RA, DeepWalk, and Node2Vec at multiple \(k\)
-         values.
-      - Write plots into `3.4frs/results/`:
-       - `recommendation_performance_analysis.png`
-       - `algorithm_comparison.png`
+## 10. Future Improvements (Optional)
+- Cache 2‑hop candidate sets to reduce full graph scans.
+- Factor shared recommendation logic into a utility module.
+- Add batched vectorized scoring for CN/AA/RA.
+- Extend evaluation to AUC‑PR and calibration metrics.
+- Integrate incremental / streaming update scenario tests.
 
 ---
 
-## 11. Scalability and Comparison with Centrality Analysis
-
-- **Full graph evaluation** (4,039 nodes) would be expensive if run naïvely on
-   all node pairs; we therefore sample nodes when computing metrics.
-- The dataset and graph construction are shared with the centrality analysis
-   in `3.1.2ca`, but the task here is link prediction instead of node
-   importance.
+## 11. Deliverables Recap
+| Artifact | Location | Purpose |
+|----------|----------|---------|
+| Heuristic implementations | `3.4frs/*.py` | Score & recommend functions |
+| Analysis script | `3.4frs/analysis.py` | Metrics, scalability, complexity plots |
+| Node2Vec analysis | `3.4frs/nv_analysis.py` | Hyperparameters & comparisons |
+| Result plots | `3.4frs/results/*.png` | Visual performance & complexity |
+| CSV summaries | `3.4frs/results/*.csv` | Tabular metrics for downstream use |
 
 ---
 
-## 12. Citations
-
-- L. A. Adamic and E. Adar, “Friends and neighbors on the Web,” *Social
-   Networks*, vol. 25, no. 3, pp. 211–230, 2003.
-- M. E. J. Newman, *Networks: An Introduction*, Oxford University Press, 2010.
-- SNAP Facebook ego-network dataset: J. McAuley and J. Leskovec, “Learning to
-   Discover Social Circles in Ego Networks,” *Advances in Neural Information
-   Processing Systems (NIPS)*, 2012.
+End of structured analysis.
