@@ -8,16 +8,34 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 class UnionFindBySize:
+    """Disjoint Set Union with union by size + path compression."""
     def __init__(self, nodes):
+        """Initializes parent and size maps.
+        Args:
+            nodes: Iterable of node identifiers.
+        """
         self.parent = {node: node for node in nodes}
         self.size = {node: 1 for node in nodes}
         
     def find(self, i):
+        """Finds representative of set containing i (path compression).
+        Args:
+            i: Node id.
+        Returns:
+            Root representative of i.
+        """
         if self.parent[i] != i:
             self.parent[i] = self.find(self.parent[i])
         return self.parent[i]
         
     def union(self, i, j):
+        """Unites sets containing i and j using size heuristic.
+        Args:
+            i: First node.
+            j: Second node.
+        Returns:
+            True if a merge occurred, False otherwise.
+        """
         root_i = self.find(i)
         root_j = self.find(j)
         
@@ -32,6 +50,16 @@ class UnionFindBySize:
         return False
 
 def run_ufa_size(G, nodes=None, shuffle_edges=False, custom_edges=None):
+    """Runs union-find by size over edges and returns component stats.
+    Args:
+        G: Graph object with adjacency in G.adj.
+        nodes: Optional iterable of nodes (defaults to all nodes).
+        shuffle_edges: If True, randomizes edge order.
+        custom_edges: Optional precomputed edge list to use.
+    Returns:
+        (list, int): List of component dicts {'nodes': count, 'edges': internal_edges},
+        and total number of processed undirected edges.
+    """
     if nodes is None: nodes = list(G.nodes())
     uf = UnionFindBySize(nodes)
     

@@ -8,16 +8,34 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 class UnionFindByRank:
+    """Disjoint Set Union (Union-Find) with union by rank + path compression."""
     def __init__(self, nodes):
+        """Initializes parent and rank dictionaries.
+        Args:
+            nodes: Iterable of node identifiers.
+        """
         self.parent = {node: node for node in nodes}
         self.rank = {node: 0 for node in nodes}
         
     def find(self, i):
+        """Finds representative of set containing i with path compression.
+        Args:
+            i: Node id.
+        Returns:
+            Root representative of i.
+        """
         if self.parent[i] != i:
             self.parent[i] = self.find(self.parent[i])
         return self.parent[i]
         
     def union(self, i, j):
+        """Unites sets containing i and j using rank heuristic.
+        Args:
+            i: First node.
+            j: Second node.
+        Returns:
+            True if a merge happened, False if already same set.
+        """
         root_i = self.find(i)
         root_j = self.find(j)
         
@@ -33,6 +51,16 @@ class UnionFindByRank:
         return False
 
 def run_ufa_rank(G, nodes=None, shuffle_edges=False, custom_edges=None):
+    """Runs union-find by rank over graph edges and returns component stats.
+    Args:
+        G: Graph object with adjacency in G.adj.
+        nodes: Optional iterable of nodes (defaults to all in G).
+        shuffle_edges: If True, randomizes edge processing order.
+        custom_edges: Optional precomputed edge list to use.
+    Returns:
+        (list, int): List of component dicts {'nodes': count, 'edges': internal_edges},
+        and total number of processed undirected edges.
+    """
     if nodes is None: nodes = list(G.nodes())
     uf = UnionFindByRank(nodes)
     

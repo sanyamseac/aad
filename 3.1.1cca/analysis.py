@@ -28,14 +28,22 @@ for d in ['bfs', 'dfs', 'ufa_rank', 'ufa_size']: os.makedirs(os.path.join(PLOT_D
 # =====================================================
 
 def calculate_density(V, E):
-    """Calculates Graph Density: 2E / V(V-1)"""
+    """Calculates graph density (2E / V(V-1)).
+    Args:
+        V: Number of nodes.
+        E: Number of edges.
+    Returns:
+        Density in [0,1]. 0 if V < 2.
+    """
     if V < 2: return 0
     return (2 * E) / (V * (V - 1))
 
 def calculate_clustering_coefficient(G):
-    """
-    Calculates Average Clustering Coefficient from scratch.
-    Logic: For each node, fraction of neighbor pairs that are connected.
+    """Computes average clustering coefficient from scratch.
+    Args:
+        G: Graph object with adjacency list G.adj.
+    Returns:
+        Average clustering coefficient across all nodes.
     """
     total_coef = 0
     nodes = list(G.nodes())
@@ -61,9 +69,12 @@ def calculate_clustering_coefficient(G):
     return total_coef / n
 
 def calculate_path_metrics(G, component_nodes):
-    """
-    Calculates Diameter and Average Path Length using BFS from scratch.
-    Uses sampling (100 nodes) to ensure performance on large graphs.
+    """Estimates diameter and average shortest path via sampled BFS.
+    Args:
+        G: Graph object.
+        component_nodes: Iterable of nodes forming the component.
+    Returns:
+        (int, float): (Estimated diameter, estimated average path length).
     """
     nodes = list(component_nodes)
     n = len(nodes)
@@ -102,7 +113,12 @@ def calculate_path_metrics(G, component_nodes):
     return max_eccentricity, avg_path
 
 def get_giant_component_nodes(G):
-    """Helper to find a start node in the largest component."""
+    """Returns list of nodes in an approximate giant component.
+    Args:
+        G: Graph object.
+    Returns:
+        List of node ids for largest discovered component (sampled BFS).
+    """
     visited = set()
     best_comp = set()
     # Sample heuristic for speed
@@ -118,6 +134,19 @@ def get_giant_component_nodes(G):
 # ANALYSIS A: Start Node Invariance
 # =====================================================
 def run_analysis_A():
+    """Runs Analysis A: evaluates start-node invariance for BFS/DFS.
+    What: Measure how traversal start node within the giant component affects runtime.
+    How:
+        1. Build aggregated graph from 10 dataset files.
+        2. Approximate giant component nodes via sampled BFS expansions.
+        3. Perform 100 runs each for BFS and DFS choosing random start nodes.
+        4. Record per-run times; compute mean, std dev, coefficient of variation.
+        5. Plot time series with mean line -> plots/<algo>/A_Invariance.png.
+        6. Write summary table -> analysis/A_Invariance.md.
+    Args: None
+    Returns: None (side effects: creates plot files and markdown summary).
+    Results: Demonstrates low variance ⇒ algorithmic stability w.r.t. start node.
+    """
     print("\n[A] Running Start Node Invariance (100 runs)...")
     G, _, _, _ = create_complete_graph(num_files=10)
     giant_nodes = get_giant_component_nodes(G)
@@ -155,6 +184,20 @@ def run_analysis_A():
 # ANALYSIS B: Time Complexity
 # =====================================================
 def run_analysis_B():
+    """Runs Analysis B: examines scaling of algorithms as graph grows.
+    What: Compare BFS, DFS, Union-Find (rank/size) runtime over incremental file loads.
+    How:
+        For i = 1..10 files:
+          1. Construct cumulative graph.
+          2. Capture V (nodes) and E (edges).
+          3. Time BFS, DFS, union-find by rank, union-find by size once each.
+          4. Store per-file stats.
+        Generate 2x2 metric grids (Time vs V, E, V+E, V*E) in plots/<algo>/B_Complexity_Grid.png.
+        Write consolidated table to analysis/B_Complexity.md.
+    Args: None
+    Returns: None (side effects: metric grid plots + markdown table).
+    Results: Empirically validates near-linear behavior in V+E for traversals; ~linear edge pass for union-find.
+    """
     print("\n[B] Running Time Complexity (1-10 files)...")
     stats = []
     for i in range(1, 11):
@@ -207,6 +250,18 @@ def run_analysis_B():
 # ANALYSIS C: Order Invariance
 # =====================================================
 def run_analysis_C():
+    """Runs Analysis C: tests order invariance under shuffled adjacency/edge lists.
+    What: Determine sensitivity of BFS, DFS, and union-find variants to input ordering.
+    How:
+        1. Build full graph (10 files).
+        2. Pre-compute normal vs shuffled adjacency (and edge list for union-find) to isolate algorithm cost.
+        3. Run each algorithm 10 repetitions with normal and shuffled ordering; average times.
+        4. Produce bar chart per algorithm -> plots/<algo>/C_Order_Invariance.png.
+        5. Log table with normal, shuffled, absolute diff -> analysis/C_Order.md.
+    Args: None
+    Returns: None (side effects: bar plots + markdown table).
+    Results: Small deltas indicate robust order invariance (expected for these algorithms beyond cache effects).
+    """
     print("\n[C] Running Order Invariance...")
     G, _, _, _ = create_complete_graph(num_files=10)
     start = list(G.nodes())[0]
@@ -253,6 +308,21 @@ def run_analysis_C():
 # ANALYSIS D: COMPREHENSIVE CONNECTIVITY METRICS
 # =====================================================
 def run_full_connectivity_analysis():
+    """Runs Analysis D: tracks evolving connectivity & structural metrics (1..10 files).
+    What: Observe how global + giant component metrics change as more ego networks are merged.
+    How:
+        For i = 1..10 files:
+          1. Build cumulative graph.
+          2. Compute density, average degree, clustering coefficient (scratch implementation).
+          3. Enumerate connected components via BFS; identify giant component.
+          4. Compute coverage %, internal edges, component counts.
+          5. Estimate diameter & average path length using sampled BFS on GC.
+          6. Append structured log to analysis/D_Connectivity_Analysis.md.
+        After loop: generate evolution plots for each metric -> plots/Metric_<name>.png.
+    Args: None
+    Returns: None (side effects: 10 metric plots + detailed markdown log).
+    Results: Provides empirical growth trends informing friend recommendation & network structure insights.
+    """
     print("\n[D] Running Comprehensive Network Metrics Analysis (1-10 files)...")
     
     history = {
