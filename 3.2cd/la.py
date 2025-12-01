@@ -3,6 +3,8 @@ import sys
 import random
 from collections import defaultdict, Counter
 
+random.seed(42)
+
 # Import 'graph.py' from the parent 'aad' directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph

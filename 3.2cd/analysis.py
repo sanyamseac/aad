@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
+# Setup results directory
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
 # Increase recursion depth (from analysis5.py)
 sys.setrecursionlimit(3000)
 
@@ -197,10 +201,8 @@ def run_modularity_comparison():
     plt.legend()
     plt.tight_layout()
 
-    # Define your filename
-    file_name = "modularity_scores_comparison.png" 
-    
-    # Save the figure to the current directory
+    # Save the figure to results directory
+    file_name = os.path.join(RESULTS_DIR, "modularity_scores_comparison.png")
     plt.savefig(file_name)
     plt.close() # Close to prevent overlap
     print(f"Graph successfully saved as {file_name}")
@@ -308,10 +310,8 @@ def run_community_size_comparison():
     plt.legend()
     plt.tight_layout()
 
-    # Define your filename
-    file_name = "community_size_distribution.png" 
-    
-    # Save the figure to the current directory
+    # Save the figure to results directory
+    file_name = os.path.join(RESULTS_DIR, "community_size_distribution.png")
     plt.savefig(file_name)
     plt.close()
     print(f"Graph successfully saved as {file_name}")
@@ -385,10 +385,8 @@ def run_visual_structure_analysis():
 
     plt.tight_layout()
     
-    # Define your filename
-    file_name = "community_structure_visualisation.png" 
-    
-    # Save the figure to the current directory
+    # Save the figure to results directory
+    file_name = os.path.join(RESULTS_DIR, "community_structure_visualisation.png")
     plt.savefig(file_name)
     plt.close()
     print(f"Graph successfully saved as {file_name}")
@@ -483,10 +481,8 @@ def run_runtime_analysis():
     plt.grid(True)
     plt.tight_layout()
 
-    # Define your filename
-    file_name = "runtime_performance_analysis.png" 
-    
-    # Save the figure to the current directory
+    # Save the figure to results directory
+    file_name = os.path.join(RESULTS_DIR, "runtime_performance_analysis.png")
     plt.savefig(file_name)
     plt.close()
     print(f"Graph successfully saved as {file_name}")
@@ -615,7 +611,7 @@ def run_complexity_benchmark():
     )
 
     plt.tight_layout()
-    file_name = 'final_benchmark_plot.png'
+    file_name = os.path.join(RESULTS_DIR, 'final_benchmark_plot.png')
     plt.savefig(file_name, bbox_inches='tight')
     plt.close()
     print(f"\nBenchmark Complete! Results saved to '{file_name}'")
