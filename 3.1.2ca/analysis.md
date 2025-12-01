@@ -328,12 +328,16 @@ python3 scalability_analysis.py
 
 ## Citations
 
-1. Freeman, L.C. (1978). "Centrality in social networks." *Social Networks*, 1(3), 215-239.
-2. Brandes, U. (2001). "A faster algorithm for betweenness centrality." *JMS*, 25(2), 163-177.
-3. Bonacich, P. (1972). "Eigenvector centrality." *JMS*, 2(1), 113-120.
-4. Bavelas, A. (1950). "Communication patterns." *JASA*, 22(6), 725-730.
-5. Leskovec, J., & Krevl, A. (2014). *SNAP Datasets*. http://snap.stanford.edu/data
+1. Freeman, L.C. (1978). "Centrality in social networks conceptual clarification." *Social Networks*, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+
+2. Brandes, U. (2001). "A faster algorithm for betweenness centrality." *Journal of Mathematical Sociology*, 25(2), 163-177. https://doi.org/10.1080/0022250X.2001.9990249
+
+3. Bonacich, P. (1972). "Factoring and weighting approaches to status scores and clique identification." *Journal of Mathematical Sociology*, 2(1), 113-120. https://doi.org/10.1080/0022250X.1972.9989806
+
+4. Bavelas, A. (1950). "Communication patterns in task-oriented groups." *Journal of the Acoustical Society of America*, 22(6), 725-730. https://doi.org/10.1121/1.1906679
+
+5. Leskovec, J., & Krevl, A. (2014). "SNAP Datasets: Stanford Large Network Dataset Collection." Stanford Network Analysis Project. http://snap.stanford.edu/data
 
 ---
 
-*Analysis Date: November 19, 2025*
+*Analysis Date: December 1, 2025*

@@ -16,7 +16,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def run_all_centralities(G):
-    """Runs all 4 centrality functions and returns their runtimes"""
+    """
+    Runs all 4 centrality algorithms and measures their execution times
+    
+    Parameters:
+    G (networkx.Graph): The input graph to analyze
+    
+    Returns:
+    dict: Dictionary with algorithm names as keys and runtimes in seconds as values
+    """
     
     runtimes = {}
     
@@ -43,6 +51,12 @@ def run_all_centralities(G):
     return runtimes
 
 def main():
+    """
+    Performs scalability analysis by testing centrality algorithms on graphs of varying sizes
+    
+    Returns:
+    None
+    """
     # SETUP GRAPH LOADING
     
     dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))

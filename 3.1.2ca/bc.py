@@ -6,7 +6,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def betweenness_centrality(G, normalized=True):
-    """Computes the betweenness centrality for all nodes using Brandes' algorithm"""
+    """
+    Computes the betweenness centrality for all nodes using Brandes' algorithm
+    
+    Parameters:
+    G (networkx.Graph): The input graph for which to compute betweenness centrality
+    normalized (bool): If True, normalize scores by dividing by (n-1)*(n-2) (Default is True).
+    
+    Returns:
+    dict: A dictionary mapping each node to its betweenness centrality score
+    """
     
     centrality = {node: 0.0 for node in G.nodes()}
     

@@ -4,7 +4,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def degree_centrality(G, normalized=True):
-    """Computes the degree centrality for all nodes, normalized by (n-1)"""
+    """
+    Computes the degree centrality for all nodes in the graph
+    
+    Parameters:
+    G (networkx.Graph): The input graph for which to compute degree centrality
+    normalized (bool): If True, normalize scores by dividing by (n-1) (Default is True)
+    
+    Returns:
+    dict: A dictionary mapping each node to its degree centrality score
+    """
     
     centrality = {} # centrality dictionary to store results
     n = G.number_of_nodes()

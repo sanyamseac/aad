@@ -6,7 +6,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def closeness_centrality(G, normalized=True):
-    """Computes the closeness centrality for all nodes, handling disconnected graphs."""
+    """
+    Computes the closeness centrality for all nodes, handling disconnected graphs
+    
+    Parameters:
+    G (networkx.Graph): The input graph for which to compute closeness centrality
+    normalized (bool): If True, apply Wasserman-Faust normalization (Default is True)
+    
+    Returns:
+    dict: A dictionary mapping each node to its closeness centrality score
+    """
     
     centrality = {node: 0.0 for node in G.nodes()}
     n = G.number_of_nodes()

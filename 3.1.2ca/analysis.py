@@ -17,7 +17,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def print_top_nodes(df, column, top_n=10):
-    """Helper function to print a sorted list of top nodes."""
+    """
+    Prints a sorted list of top nodes by a specific centrality measure
+    
+    Parameters:
+    df (pandas.DataFrame): DataFrame containing centrality scores for all nodes
+    column (str): Name of the column to sort by
+    top_n (int): Number of top nodes to display (Default is 10)
+    
+    Returns:
+    None
+    """
     print(f"\n--- Top {top_n} Nodes by {column} ---")
     
     # Sort the DataFrame by the specified column and print the top N
@@ -25,6 +35,12 @@ def print_top_nodes(df, column, top_n=10):
     print(top_nodes)
 
 def main():
+    """
+    Performs comprehensive centrality analysis on the complete graph
+    
+    Returns:
+    None
+    """
     # LOAD GRAPH 
     
     print("Loading complete graph from dataset...")

@@ -6,7 +6,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def eigenvector_centrality(G, max_iter=100, tol=1.0e-6):
-    """Computes the eigenvector centrality for all nodes using the Power Iteration method"""
+    """
+    Computes the eigenvector centrality for all nodes using the Power Iteration method
+    
+    Parameters:
+    G (networkx.Graph): The input graph for which to compute eigenvector centrality
+    max_iter (int): Maximum number of iterations for convergence (Default is 100)
+    tol (float): Convergence tolerance for stopping criterion (Default is 1.0e-6)
+    
+    Returns:
+    dict: A dictionary mapping each node to its eigenvector centrality score
+    """
 
     if len(G) == 0:
         return {}
