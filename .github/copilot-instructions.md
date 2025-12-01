@@ -30,4 +30,17 @@ globs: *
 8. Ensure that all plots are covered in `analysis.md`.
 9. Remove the "Additional Metric Visualizations" section entirely from `analysis.md` and instead add a single line referencing these insights where other insights are mentioned.
 10. Modify `analysis.py` to save the raw data tables to CSV files in a `3.1.1cca/data/` directory and then remove those tables from `analysis.md`.
-11. Modify the `analysis.py` to save the analysis of A, B, C, D as CSV files instead of .md files.
+11. Modify the `analysis.py` to save the analysis of A, B, C, D as CSV files instead of .md files, saving them as CSV files with appropriate columns as follows:
+    *   Analysis A (Start Node Invariance): Save as CSV with columns: `Algorithm`, `Mean (s)`, `StdDev (s)`, `Coeff Var (%)`
+    *   Analysis B (Time Complexity): Save as CSV with columns: `Files`, `V`, `E`, `BFS(s)`, `DFS(s)`, `UFA Rank(s)`, `UFA Size(s)`
+    *   Analysis C (Order Invariance): Save as CSV with columns: `Algorithm`, `Normal(s)`, `Shuffled(s)`, `Diff(s)`
+    *   Analysis D (Connectivity Analysis): Save as CSV with comprehensive columns: `Step`, `Files`, `Nodes`, `Edges`, `Density`, `Avg Degree`, `Clustering Coeff`, `Num Components`, `GC Size (Nodes)`, `GC Size (Edges)`, `GC Coverage (%)`, `Diameter`, `Avg Path Length`
+12. When running `analysis.py`, ensure full reproducibility by setting the seed for both Python's `random` module and NumPy's random generator using the same `RANDOM_SEED` variable. For example:
+
+    ```python
+    RANDOM_SEED = 67
+    random.seed(RANDOM_SEED)
+    np.random.seed(RANDOM_SEED)
+    ```
+13. Make sure that all the data in the Key Observations section of `analysis.md` are the new and updated values.
+14. Move the Complete performance table about Algorithm Comparison under that section in `analysis.md`.

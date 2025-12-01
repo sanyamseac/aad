@@ -56,7 +56,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 **Key Observations:**
 - Linear scaling confirmed: doubling V+E approximately doubles runtime
 - No superlinear growth detected
-- Execution times range from 0.0016s (smallest) to 0.0504s (largest)
+- Execution times range from 0.0008s (smallest) to 0.0199s (largest)
 
 #### Start-Node Invariance
 ![BFS Start-Node Invariance](./results/plots/bfs/A_Invariance.png)
@@ -66,10 +66,10 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 **Interpretation:** The low coefficient of variation (18.90%) demonstrates that BFS performance is relatively independent of start node selection. This is expected because BFS explores the entire connected component regardless of entry point.
 
 **Key Observations:**
-- Mean runtime: 0.02703s
-- Standard deviation: 0.00511s  
-- Coefficient of variation: 18.90% (acceptable variance)
-- Performance is reasonably consistent across different start nodes
+- Mean runtime: 0.01843s
+- Standard deviation: 0.00097s  
+- Coefficient of variation: 5.28% (excellent consistency)
+- Performance is highly consistent across different start nodes
 
 #### Order Invariance
 ![BFS Order Invariance](./results/plots/bfs/C_Order_Invariance.png)
@@ -79,10 +79,10 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 **Interpretation:** The small difference (0.00403s) between normal and shuffled orderings indicates BFS is relatively insensitive to adjacency list order. However, the slight increase with shuffling suggests cache locality benefits from the original ordering.
 
 **Key Observations:**
-- Normal ordering: 0.02170s
-- Shuffled ordering: 0.02573s
-- Difference: 0.00403s (18.6% increase)
-- Cache effects visible but not dominant
+- Normal ordering: 0.01512s
+- Shuffled ordering: 0.01568s
+- Difference: 0.00056s (3.7% increase)
+- Minimal order sensitivity; cache effects present but very small
 
 ### Measured Performance Data
 
@@ -147,34 +147,34 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 - Linear relationship between runtime and V+E
 - Performance comparable to BFS (sometimes slightly faster, sometimes slower)
 - No evidence of quadratic or superlinear behavior
-- Execution times: 0.0018s (smallest) to 0.0326s (largest)
+- Execution times: 0.0008s (smallest) to 0.0192s (largest)
 
 #### Start-Node Invariance
 ![DFS Start-Node Invariance](./results/plots/dfs/A_Invariance.png)
 
 **Graph Description:** Statistical analysis of DFS runtime variability across different starting nodes.
 
-**Interpretation:** DFS shows even lower variance (15.34%) than BFS (18.90%), indicating highly consistent performance regardless of start node. The recursion pattern and depth-first nature lead to predictable execution paths.
+**Interpretation:** DFS shows higher variance (34.56%) than BFS (5.28%), indicating more variability in performance across different start nodes. This is due to the depth-first nature which can vary significantly depending on the structure explored first.
 
 **Key Observations:**
-- Mean runtime: 0.02575s
-- Standard deviation: 0.00395s
-- Coefficient of variation: 15.34% (better than BFS)
-- More stable than BFS across different start points
+- Mean runtime: 0.02235s
+- Standard deviation: 0.00773s
+- Coefficient of variation: 34.56% (higher variance than BFS)
+- More variability than BFS across different start points
 
 #### Order Invariance
 ![DFS Order Invariance](./results/plots/dfs/C_Order_Invariance.png)
 
 **Graph Description:** Comparison of DFS performance between original and shuffled adjacency list orderings.
 
-**Interpretation:** DFS shows exceptional order invariance with only 0.00013s difference (0.6% change). This minimal sensitivity suggests DFS is highly robust to edge ordering, likely due to depth-first exploration reducing cache sensitivity.
+**Interpretation:** DFS shows excellent order invariance with only 0.00059s difference (3.9% change). This minimal sensitivity suggests DFS is highly robust to edge ordering, likely due to depth-first exploration reducing cache sensitivity.
 
 **Key Observations:**
-- Normal ordering: 0.02130s
-- Shuffled ordering: 0.02117s
-- Difference: 0.00013s (0.6% change)
+- Normal ordering: 0.01522s
+- Shuffled ordering: 0.01581s
+- Difference: 0.00059s (3.9% change)
 - Essentially order-independent
-- Better order invariance than BFS
+- Similar order invariance to BFS
 
 ### Measured Performance Data
 
@@ -250,9 +250,9 @@ This means Union-Find achieves virtually constant-time operations in practice.
 
 **Key Observations:**
 - Near-linear scaling confirmed
-- ~2-3× slower than BFS/DFS in absolute time
+- ~3× slower than BFS/DFS in absolute time
 - Higher constant factors visible
-- Execution times: 0.0036s (smallest) to 0.0686s (largest)
+- Execution times: 0.0021s (smallest) to 0.0646s (largest)
 
 #### Complexity Grid - Union by Size
 ![UFA Size Complexity Grid](./results/plots/ufa_size/B_Complexity_Grid.png)
@@ -264,7 +264,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 **Key Observations:**
 - Virtually identical to UFA-Rank performance
 - Near-linear scaling maintained
-- Execution times: 0.0018s (smallest) to 0.0728s (largest)
+- Execution times: 0.0021s (smallest) to 0.0648s (largest)
 - Comparable constant factors to UFA-Rank
 
 #### Order Invariance - Union by Rank
@@ -275,10 +275,10 @@ This means Union-Find achieves virtually constant-time operations in practice.
 **Interpretation:** UFA-Rank shows significant sensitivity to edge ordering (44.3% increase with shuffling). This is because edge order affects the sequence of union operations, which influences tree structure even with path compression. The original ordering likely has beneficial locality patterns.
 
 **Key Observations:**
-- Normal ordering: 0.04729s
-- Shuffled ordering: 0.06825s
-- Difference: 0.02096s (44.3% increase)
-- Highest order sensitivity among all algorithms
+- Normal ordering: 0.05170s
+- Shuffled ordering: 0.05919s
+- Difference: 0.00748s (14.5% increase)
+- Moderate order sensitivity
 - Edge order impacts tree structure and cache behavior
 
 #### Order Invariance - Union by Size
@@ -286,13 +286,13 @@ This means Union-Find achieves virtually constant-time operations in practice.
 
 **Graph Description:** Comparison of UFA-Size runtime on normal vs shuffled edge orderings.
 
-**Interpretation:** UFA-Size shows similar order sensitivity (29.3% increase) to UFA-Rank, though slightly better. Both Union-Find variants are more sensitive to edge ordering than traversal algorithms due to their incremental set-merging nature.
+**Interpretation:** UFA-Size shows similar order sensitivity (13.9% increase) to UFA-Rank. Both Union-Find variants show moderate sensitivity to edge ordering due to their incremental set-merging nature.
 
 **Key Observations:**
-- Normal ordering: 0.05469s
-- Shuffled ordering: 0.07074s
-- Difference: 0.01605s (29.3% increase)
-- Slightly better than UFA-Rank but still significant
+- Normal ordering: 0.05156s
+- Shuffled ordering: 0.05873s
+- Difference: 0.00717s (13.9% increase)
+- Similar to UFA-Rank order sensitivity
 - Edge ordering matters for Union-Find performance
 
 ### Measured Performance Data
@@ -331,26 +331,39 @@ This means Union-Find achieves virtually constant-time operations in practice.
 
 ### Complete Performance Table
 
-*Complete algorithm performance comparison available in: `data/complete_performance.csv`*
+| Files | V | E | BFS(s) | DFS(s) | UFA Rank(s) | UFA Size(s) |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 348 | 2,866 | 0.0008 | 0.0008 | 0.0021 | 0.0021 |
+| 2 | 1,390 | 30,654 | 0.0059 | 0.0060 | 0.0200 | 0.0202 |
+| 3 | 2,167 | 45,414 | 0.0098 | 0.0092 | 0.0313 | 0.0306 |
+| 4 | 2,916 | 76,190 | 0.0155 | 0.0156 | 0.0577 | 0.0562 |
+| 5 | 3,463 | 81,550 | 0.0177 | 0.0179 | 0.0581 | 0.0575 |
+| 6 | 3,670 | 84,875 | 0.0184 | 0.0180 | 0.0639 | 0.0593 |
+| 7 | 3,730 | 85,080 | 0.0197 | 0.0179 | 0.0594 | 0.0596 |
+| 8 | 3,833 | 86,243 | 0.0183 | 0.0190 | 0.0615 | 0.0597 |
+| 9 | 4,003 | 88,069 | 0.0199 | 0.0185 | 0.0618 | 0.0602 |
+| 10 | 4,039 | 88,234 | 0.0194 | 0.0192 | 0.0646 | 0.0648 |
+
+*Raw data also available in: `results/data/complete_performance.csv`*
 
 ### Comparative Analysis
 
 **Runtime Performance:**
 - BFS and DFS demonstrate the fastest absolute runtimes
-- DFS typically matches or outperforms BFS slightly
-- UFA variants are 2-3× slower than traversal algorithms
+- BFS and DFS have nearly identical performance
+- UFA variants are ~3× slower than traversal algorithms
 - All algorithms scale linearly with V+E
 
 **Order Sensitivity:**
-- DFS: Most robust (0.6% variation)
-- BFS: Moderate sensitivity (18.6% variation)
-- UFA-Size: Significant sensitivity (29.3% variation)
-- UFA-Rank: Most sensitive (44.3% variation)
+- BFS: Minimal sensitivity (3.7% variation)
+- DFS: Minimal sensitivity (3.9% variation)
+- UFA-Rank: Moderate sensitivity (14.5% variation)
+- UFA-Size: Moderate sensitivity (13.9% variation)
 
 **Start-Node Variance:**
-- DFS: 15.34% coefficient of variation
-- BFS: 18.90% coefficient of variation
-- Both show acceptable consistency
+- BFS: 5.28% coefficient of variation (excellent consistency)
+- DFS: 34.56% coefficient of variation (higher variability)
+- BFS shows superior start-node consistency
 
 ### Visual Comparisons
 
@@ -605,7 +618,7 @@ The data shows how network structure evolves as ego-networks are progressively m
 - Clustering remains remarkably stable (0.57-0.61)
 - Connectivity remains robust (1 component, 100% GC coverage typical)
 - Diameter grows slowly (2→8) confirming small-world property
-- Average path length grows gradually (1.95→3.72 hops)
+- Average path length grows gradually (1.95→3.74 hops)
 
 ---
 
