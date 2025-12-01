@@ -178,7 +178,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 
 ### Measured Performance Data
 
-*Raw performance data available in: `data/dfs_performance.csv`*
+*Raw performance data available in: `results/data/dfs_performance.csv`*
 
 ### Strengths, Weaknesses, and Use Cases
 
@@ -297,7 +297,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 
 ### Measured Performance Data
 
-*Raw performance data available in: `data/ufa_rank_performance.csv` and `data/ufa_size_performance.csv`*
+*Raw performance data available in: `results/data/ufa_rank_performance.csv` and `results/data/ufa_size_performance.csv`*
 
 ### Strengths, Weaknesses, and Use Cases
 
@@ -697,7 +697,3 @@ The data shows how network structure evolves as ego-networks are progressively m
 - Wikipedia: ["Depth-first search"](https://en.wikipedia.org/wiki/Depth-first_search) - Algorithm variations and use cases
 - Wikipedia: ["Disjoint-set data structure"](https://en.wikipedia.org/wiki/Disjoint-set_data_structure) - Union-Find with path compression and union heuristics
 - Wikipedia: ["Ackermann function"](https://en.wikipedia.org/wiki/Ackermann_function) - Understanding α(n) inverse Ackermann function
-
-**Network Analysis Tools:**
-- NetworkX Documentation: [https://networkx.org/documentation/stable/](https://networkx.org/documentation/stable/) - Python library for network analysis
-- Graph-tool Documentation: [https://graph-tool.skewed.de/](https://graph-tool.skewed.de/) - High-performance graph analysis
