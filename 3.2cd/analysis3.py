@@ -133,9 +133,14 @@ def main():
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
-
-    # Show the plot
-    plt.show()
+# ---- NEW CODE START ----
+    # Define your filename
+    file_name = "community_size_distribution.png" 
+    
+    # Save the figure to the current directory
+    plt.savefig(file_name)
+    print(f"Graph successfully saved as {file_name}")
+    # ---- NEW CODE END ----
 
 
 if __name__ == "__main__":

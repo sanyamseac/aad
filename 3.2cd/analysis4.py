@@ -103,7 +103,14 @@ def main():
     plt.grid(True)
     plt.tight_layout()
 
-    plt.show()
+    # ---- NEW CODE START ----
+    # Define your filename
+    file_name = "runtime_performance_analysis.png" 
+    
+    # Save the figure to the current directory
+    plt.savefig(file_name)
+    print(f"Graph successfully saved as {file_name}")
+    # ---- NEW CODE END ----
 
 
 if __name__ == "__main__":

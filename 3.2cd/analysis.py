@@ -73,8 +73,14 @@ def main():
     draw_graph(G, lv_comm,  axs[1], "Louvain")
     draw_graph(G, ld_comm,  axs[2], "Leiden")
 
-    plt.tight_layout()
-    plt.show()
+    plt.tight_layout()# ---- NEW CODE START ----
+    # Define your filename
+    file_name = "community_structure_visualisation.png" 
+    
+    # Save the figure to the current directory
+    plt.savefig(file_name)
+    print(f"Graph successfully saved as {file_name}")
+    # ---- NEW CODE END ----
 
 
 if __name__ == "__main__":

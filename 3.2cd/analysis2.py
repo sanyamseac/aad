@@ -219,8 +219,14 @@ def main():
     plt.title("Modularity Trajectories: Girvan-Newman vs Louvain vs Leiden")
     plt.grid(True)
     plt.legend()
-    plt.tight_layout()
-    plt.show()
+    plt.tight_layout()# ---- NEW CODE START ----
+    # Define your filename
+    file_name = "modularity_scores_comparison.png" 
+    
+    # Save the figure to the current directory
+    plt.savefig(file_name)
+    print(f"Graph successfully saved as {file_name}")
+    # ---- NEW CODE END ----
 
 
 if __name__ == "__main__":
