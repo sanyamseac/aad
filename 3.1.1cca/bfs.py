@@ -4,7 +4,9 @@ from collections import deque
 import random
 import time
 
-# Include requested imports for dataset access
+random.seed(67)
+
+# Include imports for dataset access
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
