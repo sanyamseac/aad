@@ -1,4 +1,4 @@
-# Node2Vec: Embedding-Based Friend Recommendation Analysis
+# Node2Vec: Embedding-Based Friend Recommendation Analysis (BONUS)
 
 ## Overview
 
@@ -216,13 +216,8 @@ $$P(x \mid s, t) = \begin{cases}
 
 ### Setup
 
-```bash
-# Install dependencies
-pip install networkx numpy pandas matplotlib scikit-learn node2vec
+Make sure you are in the project root directory.
 
-# Navigate to directory
-cd /path/to/aad/3.4frs
-```
 
 ### Execute Analysis
 

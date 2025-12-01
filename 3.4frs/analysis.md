@@ -270,11 +270,11 @@ def compute_resource_allocation_score(G, u, v):
 **Complexity:** $O(n \cdot \bar{d})$ - slightly faster than AA (division vs logarithm).
 
 **Performance Metrics:**
-- Precision: 0.3563 🏆
-- Recall: 0.0291 🏆
-- F1-Score: 0.0425 🏆
-- ROC-AUC: 0.9871 🏆
-- MAP: 0.4201 🏆
+- Precision: 0.3563
+- Recall: 0.0291
+- F1-Score: 0.0425
+- ROC-AUC: 0.9871
+- MAP: 0.4201
 - Runtime: 1.80 seconds
 
 **Winner:** Highest F1-score, precision, recall, ROC-AUC, and MAP across all heuristic methods.
@@ -300,9 +300,9 @@ def compute_resource_allocation_score(G, u, v):
 
 | Algorithm | Precision | Recall | F1 | ROC-AUC | MAP | Runtime (s) | Speed vs CN |
 |-----------|-----------|--------|-----|---------|-----|-------------|-------------|
-| **Resource Allocation** 🥇 | **0.3563** | **0.0291** | **0.0425** | **0.9871** | **0.4201** | 1.80 | 0.79x |
-| **Adamic-Adar** 🥈 | 0.3403 | 0.0289 | 0.0418 | 0.9858 | 0.4080 | 1.86 | 0.76x |
-| **Common Neighbors** 🥉 | 0.3316 | 0.0281 | 0.0406 | 0.9838 | 0.3951 | 1.41 | 1.0x |
+| **Resource Allocation** 1st | **0.3563** | **0.0291** | **0.0425** | **0.9871** | **0.4201** | 1.80 | 0.79x |
+| **Adamic-Adar** 2nd | 0.3403 | 0.0289 | 0.0418 | 0.9858 | 0.4080 | 1.86 | 0.76x |
+| **Common Neighbors** 3rd | 0.3316 | 0.0281 | 0.0406 | 0.9838 | 0.3951 | 1.41 | 1.0x |
 | **Jaccard Coefficient** | 0.3209 | 0.0261 | 0.0382 | 0.9724 | 0.3620 | 2.06 | 0.68x |
 | **Preferential Attachment** | 0.0510 | 0.0146 | 0.0172 | 0.8374 | 0.1346 | **0.65** | **2.16x** |
 
@@ -348,13 +348,7 @@ def compute_resource_allocation_score(G, u, v):
 
 ### Setup
 
-```bash
-# Install dependencies
-pip install networkx numpy pandas matplotlib scikit-learn psutil
-
-# Navigate to directory
-cd d:/aad/3.4frs
-```
+Make sure you are in the project root directory.
 
 ### Execute Analysis
 
@@ -372,8 +366,6 @@ python analysis.py
 - `results/scalability_analysis.png` - Runtime vs graph size comparison
 - `results/performance_metrics_vs_size.png` - Accuracy metrics across graphs
 - `results/theoretical_vs_actual_complexity.png` - Complexity validation
-
-**Runtime:** ~5-8 minutes for heuristics
 
 ### Customization
 
@@ -419,7 +411,7 @@ This analysis evaluated five classical heuristic algorithms for link prediction 
    - **Best Speed-Accuracy:** Common Neighbors (F1=0.0406, runtime=1.41s)
    - **Fastest:** Preferential Attachment (runtime=0.65s, but F1=0.0172)
 
-**Production Recommendations:**
+**Production Use Cases:**
 
 | Use Case | Algorithm | Rationale |
 |----------|-----------|-----------|
