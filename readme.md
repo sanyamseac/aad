@@ -31,6 +31,7 @@ aad/
 │
 ├── 3.1.1cca/                         # Connected Components Analysis
 │   ├── analysis.py                   # Main analysis script
+│   ├── analysis.md                   # Module analysis report
 │   ├── bfs.py                        # Breadth-First Search
 │   ├── dfs.py                        # Depth-First Search
 │   ├── ufa_by_rank.py                # Union-Find by Rank
@@ -42,6 +43,7 @@ aad/
 │
 ├── 3.1.2ca/                          # Centrality Analysis
 │   ├── analysis.py                   # Main analysis script
+│   ├── analysis.md                   # Module analysis report
 │   ├── dc.py                         # Degree Centrality
 │   ├── bc.py                         # Betweenness Centrality
 │   ├── cc.py                         # Closeness Centrality
@@ -51,6 +53,7 @@ aad/
 │
 ├── 3.2cd/                            # Community Detection
 │   ├── analysis.py                   # Main analysis script
+│   ├── analysis.md                   # Module analysis report
 │   ├── gn.py                         # Girvan-Newman Algorithm
 │   ├── lm.py                         # Louvain Modularity
 │   ├── la.py                         # Leiden Algorithm
@@ -58,6 +61,7 @@ aad/
 │
 └── 3.4frs/                           # Friend Recommendation Systems
     ├── analysis.py                   # Main analysis script
+    ├── analysis.md                   # Module analysis report
     ├── cm.py                         # Common Neighbors
     ├── aa.py                         # Adamic-Adar
     ├── jc.py                         # Jaccard Coefficient
@@ -65,6 +69,7 @@ aad/
     ├── ra.py                         # Resource Allocation
     ├── nv.py                         # Node2Vec (Bonus)
     ├── nv_analysis.py                # Node2Vec analysis (Bonus)
+    ├── nv_analysis.md                # Node2Vec analysis report (Bonus)
     └── results/                      # Generated outputs
 ```
 
