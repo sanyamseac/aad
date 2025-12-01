@@ -60,11 +60,11 @@ Linear growth confirms O(V+E) complexity. Algorithm scales efficiently even for 
 
 **Top 5 Nodes**:
 ```
-Node 107: DC = 0.1885
-Node 1684: DC = 0.1456
-Node 1912: DC = 0.0942
-Node 3437: DC = 0.0829
-Node 0: DC = 0.0765
+Node 107: DC = 0.2588
+Node 1684: DC = 0.1961
+Node 1912: DC = 0.1870
+Node 3437: DC = 0.1355
+Node 0: DC = 0.0859
 ```
 
 **Insights**: Ego nodes dominate due to direct connections with their entire ego network.
@@ -114,11 +114,11 @@ Quadratic growth for sparse social networks confirms theoretical bounds.
 
 **Top 5 Nodes**:
 ```
-Node 107: CC = 0.4821
-Node 1684: CC = 0.4156
-Node 1912: CC = 0.3987
-Node 0: CC = 0.3654
-Node 3437: CC = 0.3598
+Node 107: CC = 0.4597
+Node 58: CC = 0.3974
+Node 428: CC = 0.3948
+Node 563: CC = 0.3939
+Node 1684: CC = 0.3936
 ```
 
 **Insights**: Nodes with high closeness can efficiently reach entire network, ideal for broadcasting.
@@ -168,11 +168,11 @@ Growth between O(V²) and O(V³), closer to O(V²) for sparse networks. Brandes'
 
 **Top 5 Nodes**:
 ```
-Node 107: BC = 0.4285
-Node 1684: BC = 0.3124
-Node 1912: BC = 0.1987
-Node 0: BC = 0.1654
-Node 3437: BC = 0.1432
+Node 107: BC = 0.4805
+Node 1684: BC = 0.3378
+Node 3437: BC = 0.2361
+Node 1912: BC = 0.2293
+Node 1085: BC = 0.1490
 ```
 
 **Insights**: Identifies bridge nodes connecting communities. Some moderate-degree nodes have high BC due to structural position.
@@ -224,11 +224,11 @@ Linear growth with edges, converges in 25-40 iterations typically.
 
 **Top 5 Nodes**:
 ```
-Node 107: EC = 0.2156
-Node 1684: EC = 0.1987
-Node 1912: EC = 0.1456
-Node 3437: EC = 0.1234
-Node 0: EC = 0.1123
+Node 1912: EC = 0.0954
+Node 2266: EC = 0.0870
+Node 2206: EC = 0.0861
+Node 2233: EC = 0.0852
+Node 2464: EC = 0.0843
 ```
 
 **Insights**: High EC nodes are connected to other important nodes, indicating network core membership.
@@ -371,5 +371,3 @@ python3 scalability_analysis.py
 5. Leskovec, J., & Krevl, A. (2014). "SNAP Datasets: Stanford Large Network Dataset Collection." Stanford Network Analysis Project. http://snap.stanford.edu/data
 
 ---
-
-*Analysis Date: December 1, 2025*

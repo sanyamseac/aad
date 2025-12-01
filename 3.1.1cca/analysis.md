@@ -86,7 +86,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 
 ### Measured Performance Data
 
-*Raw performance data available in: `data/bfs_performance.csv`*
+*Raw performance data available in: `results/data/bfs_performance.csv`*
 
 ### Strengths, Weaknesses, and Use Cases
 
@@ -607,7 +607,7 @@ The network maintains a single giant component covering 98-100% of nodes:
 
 ## Detailed Network Connectivity Data
 
-*Comprehensive connectivity metrics for each dataset step are available in: `data/detailed_connectivity.csv`*
+*Comprehensive connectivity metrics for each dataset step are available in: `results/data/detailed_connectivity.csv`*
 
 The data shows how network structure evolves as ego-networks are progressively merged.
 
