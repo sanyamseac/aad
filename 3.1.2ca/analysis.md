@@ -247,32 +247,64 @@ Node 0: EC = 0.1123
 
 ![Score Distributions for All Centralities](<centrality_distributions.png>)
 
-Comparison of score distributions across all four centrality measures.
+**Graph Description**: Four histograms (2×2 grid) showing the frequency distribution of centrality scores on a logarithmic scale.
+
+**Interpretation**:
+- **Power-law distribution**: All measures show right-skewed distributions where most nodes have low scores and few nodes have very high scores
+- **Degree Centrality**: Smoothest distribution, indicating varied connectivity levels across the network
+- **Betweenness Centrality**: Highly concentrated near zero, showing most nodes are not bridges; few nodes control information flow
+- **Closeness Centrality**: More uniform distribution suggests many nodes have similar average distances to others
+- **Eigenvector Centrality**: Sharp peak at low values indicates most nodes are not connected to influential neighbors
+- **Implication**: Network exhibits hierarchical structure with clear distinction between ordinary nodes and influential hubs
 
 ### Correlation Matrix
 
 ![Correlation Heatmap](<correlation_heatmap.png>)
 
-| Measure Pair | Correlation |
-|--------------|-------------|
-| DC vs CC | 0.82 |
-| DC vs BC | 0.65 |
-| DC vs EC | 0.71 |
-| CC vs BC | 0.78 |
-| CC vs EC | 0.69 |
-| BC vs EC | 0.58 |
+**Graph Description**: Symmetric 4×4 heatmap with color-coded Pearson correlation coefficients between all centrality measure pairs. Colors range from blue (low correlation) to red (high correlation).
+
+| Measure Pair | Correlation | Interpretation |
+|--------------|-------------|----------------|
+| DC vs CC | 0.82 | Strong positive: Well-connected nodes tend to be closer to all others |
+| DC vs BC | 0.65 | Moderate positive: High-degree nodes often lie on shortest paths |
+| DC vs EC | 0.71 | Strong positive: Popular nodes tend to connect to other popular nodes |
+| CC vs BC | 0.78 | Strong positive: Nodes close to others often bridge communities |
+| CC vs EC | 0.69 | Moderate positive: Centrally located nodes connect to important neighbors |
+| BC vs EC | 0.58 | Moderate positive: Bridge nodes have some connection to influential nodes |
+
+**Key Insights**:
+- **Highest correlation (DC-CC: 0.82)**: In social networks, having many friends naturally reduces average distance to others
+- **Lowest correlation (BC-EC: 0.58)**: Being a bridge doesn't necessarily mean connecting to important nodes
+- **All positive correlations**: Different centrality aspects tend to reinforce each other in this network
+- **No perfect correlation (< 1.0)**: Each measure captures unique aspects of node importance
 
 ### Top Nodes Across Measures
 
 ![Top 20 Comparison](<top_nodes_comparison.png>)
 
-Ego nodes (107, 1684, 1912, 0, 3437) consistently rank in top 5 across all measures.
+**Graph Description**: Four horizontal bar charts (2×2 grid) showing the top 20 nodes for each centrality measure with their scores.
+
+**Interpretation**:
+- **Consistent leaders**: Ego nodes (107, 1684, 1912, 0, 3437) dominate top 5 positions across all measures
+- **Node 107**: Highest scorer in all measures, indicating this node is the most influential across all dimensions
+- **Score variance**: Degree and Eigenvector show more gradual decline; Betweenness and Closeness show steeper drop-offs
+- **Rank stability**: Top nodes maintain similar relative positions across measures, confirming robust importance
+- **Mid-tier differences**: Ranks 10-20 vary significantly between measures, revealing nodes with specialized roles
+- **Implication**: Network has a stable core of super-influential nodes (ego nodes) with clear hierarchical structure
 
 ### Complexity Comparison
 
 ![Time Complexity for All Centralities](<scalability_vs_complexity.png>)
 
-Empirical time complexity comparison across all four centrality measures.
+**Graph Description**: Four scatter plots (2×2 grid) showing runtime vs. theoretical complexity for each algorithm as graph size increases.
+
+**Interpretation**:
+- **Degree Centrality (top-left)**: Linear relationship with O(V) confirms theoretical O(V+E) complexity
+- **Closeness Centrality (top-right)**: Quadratic curve confirms O(V²) for sparse networks; would be O(V³) for dense
+- **Betweenness Centrality (bottom-left)**: Near-quadratic growth validates O(V×E) complexity for sparse graphs
+- **Eigenvector Centrality (bottom-right)**: Linear growth with O(E) confirms O(k×E) where k iterations remain constant
+- **Scalability verdict**: DC and EC scale well (linear); CC and BC struggle with large networks (quadratic+)
+- **Practical implications**: For graphs with >10K nodes, prefer DC or EC; avoid CC and BC unless absolutely necessary
 
 | Algorithm | Time | Space | Speed (1000 nodes) |
 |-----------|------|-------|-------------------|
