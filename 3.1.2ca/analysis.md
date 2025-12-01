@@ -245,7 +245,7 @@ Node 0: EC = 0.1123
 
 ### Centrality Score Distributions
 
-![Score Distributions for All Centralities](<centrality_distributions.png>)
+![Score Distributions for All Centralities](<./results/centrality_distributions.png>)
 
 **Graph Description**: Four histograms (2×2 grid) showing the frequency distribution of centrality scores on a logarithmic scale.
 
@@ -259,7 +259,7 @@ Node 0: EC = 0.1123
 
 ### Correlation Matrix
 
-![Correlation Heatmap](<correlation_heatmap.png>)
+![Correlation Heatmap](<./results/correlation_heatmap.png>)
 
 **Graph Description**: Symmetric 4×4 heatmap with color-coded Pearson correlation coefficients between all centrality measure pairs. Colors range from blue (low correlation) to red (high correlation).
 
@@ -280,7 +280,7 @@ Node 0: EC = 0.1123
 
 ### Top Nodes Across Measures
 
-![Top 20 Comparison](<top_nodes_comparison.png>)
+![Top 20 Comparison](<./results/top_nodes_comparison.png>)
 
 **Graph Description**: Four horizontal bar charts (2×2 grid) showing the top 20 nodes for each centrality measure with their scores.
 
@@ -294,7 +294,7 @@ Node 0: EC = 0.1123
 
 ### Complexity Comparison
 
-![Time Complexity for All Centralities](<scalability_vs_complexity.png>)
+![Time Complexity for All Centralities](<./results/scalability_vs_complexity.png>)
 
 **Graph Description**: Four scatter plots (2×2 grid) showing runtime vs. theoretical complexity for each algorithm as graph size increases.
 
