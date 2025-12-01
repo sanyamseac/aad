@@ -1,3 +1,13 @@
+"""Common Neighbors Friend Recommendation Algorithm.
+
+This module implements the Common Neighbors index for link prediction.
+It's the simplest heuristic: two nodes are more likely to connect if they
+have many mutual friends.
+
+Time Complexity: O(n * d²) where n=nodes, d=average degree
+Space Complexity: O(n)
+"""
+
 import os
 import sys
 import networkx as nx
@@ -8,11 +18,31 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def compute_common_neighbors_score(G, u, v):
+    """Count common neighbors between two nodes.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        u (int): First node ID.
+        v (int): Second node ID.
+        
+    Returns:
+        int: Number of common neighbors.
+    """
     neighbors_u = set(G.neighbors(u))
     neighbors_v = set(G.neighbors(v))
     return len(neighbors_u.intersection(neighbors_v))
 
 def recommend_friends(G, node, top_k=10):
+    """Recommend friends for a node using Common Neighbors.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        node (int): Target node for recommendations.
+        top_k (int, optional): Number of recommendations to return. Defaults to 10.
+        
+    Returns:
+        list: List of (node_id, score) tuples sorted by score descending.
+    """
     if node not in G:
         return []
     

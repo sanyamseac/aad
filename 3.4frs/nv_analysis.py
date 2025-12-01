@@ -40,7 +40,23 @@ from analysis import (
 
 
 def evaluate_node2vec_config(graph_data, p, q, num_walks, walk_length, top_k=10, sample_size=50):
-    """Evaluate Node2Vec with specific hyperparameters"""
+    """Evaluate Node2Vec with specific hyperparameters.
+    
+    Trains a Node2Vec model and evaluates its performance on link prediction.
+    
+    Args:
+        graph_data (tuple): (graph_id, nx_G, train_G, test_edges_pos, test_edges_neg, sample_nodes).
+        p (float): Return parameter for random walks.
+        q (float): In-out parameter for random walks.
+        num_walks (int): Number of walks per node.
+        walk_length (int): Length of each walk.
+        top_k (int, optional): Number of recommendations per node. Defaults to 10.
+        sample_size (int, optional): Number of nodes to evaluate. Defaults to 50.
+        
+    Returns:
+        dict: Performance metrics including precision, recall, F1, runtime, memory usage.
+        None: If evaluation fails.
+    """
     graph_id, nx_G, train_G, test_edges_pos, test_edges_neg, sample_nodes = graph_data
     
     gc.collect()
@@ -99,7 +115,26 @@ def hyperparameter_exploration(graph_id=1, top_k=10, sample_size=50,
                               p_values=None, q_values=None, 
                               num_walks_values=None, walk_length_values=None,
                               execution_mode='parallel', max_workers=None):
-    """Explore different hyperparameter combinations"""
+    """Systematic hyperparameter exploration for Node2Vec.
+    
+    Tests all combinations of p, q, num_walks, and walk_length parameters
+    to find optimal configurations.
+    
+    Args:
+        graph_id (int, optional): Graph to evaluate on. Defaults to 1.
+        top_k (int, optional): Recommendations per node. Defaults to 10.
+        sample_size (int, optional): Nodes to evaluate. Defaults to 50.
+        p_values (list, optional): Return parameter values. Defaults to [0.5, 0.7, 1.0, 1.5, 2.0].
+        q_values (list, optional): In-out parameter values. Defaults to [0.5, 0.7, 1.0, 1.5, 2.0].
+        num_walks_values (list, optional): Walk count values. Defaults to [5, 10, 20].
+        walk_length_values (list, optional): Walk length values. Defaults to [40, 80, 120].
+        execution_mode (str, optional): 'parallel' or 'sequential'. Defaults to 'parallel'.
+        max_workers (int, optional): Parallel workers. Defaults to CPU count.
+        
+    Returns:
+        pd.DataFrame: Results for all parameter combinations.
+        None: If graph loading fails.
+    """
     if p_values is None:
         p_values = [0.5, 0.7, 1.0, 1.5, 2.0]
     if q_values is None:
@@ -202,7 +237,22 @@ def hyperparameter_exploration(graph_id=1, top_k=10, sample_size=50,
 
 
 def scalability_analysis(graph_ids=None, p=0.7, q=0.7, num_walks=10, walk_length=80):
-    """Analyze Node2Vec scalability across different graph sizes"""
+    """Analyze Node2Vec scalability across graph sizes.
+    
+    Evaluates how runtime and memory usage scale with graph size using
+    fixed hyperparameters.
+    
+    Args:
+        graph_ids (list, optional): Graph IDs to test. Defaults to range(1, 11).
+        p (float, optional): Return parameter. Defaults to 0.7.
+        q (float, optional): In-out parameter. Defaults to 0.7.
+        num_walks (int, optional): Walks per node. Defaults to 10.
+        walk_length (int, optional): Steps per walk. Defaults to 80.
+        
+    Returns:
+        pd.DataFrame: Scalability metrics for each graph.
+        None: If no graphs could be evaluated.
+    """
     if graph_ids is None:
         graph_ids = list(range(1, 11))
     
@@ -276,7 +326,22 @@ def scalability_analysis(graph_ids=None, p=0.7, q=0.7, num_walks=10, walk_length
 
 
 def compare_with_heuristics(graph_id=1, nv_configs=None, top_k=10, sample_size=50):
-    """Compare Node2Vec with heuristic algorithms"""
+    """Compare Node2Vec variants against heuristic baselines.
+    
+    Evaluates multiple Node2Vec configurations alongside Common Neighbors,
+    Adamic-Adar, Jaccard, Preferential Attachment, and Resource Allocation.
+    
+    Args:
+        graph_id (int, optional): Graph to evaluate on. Defaults to 1.
+        nv_configs (list, optional): List of (p, q, num_walks, walk_length, name) tuples.
+            Defaults to Balanced, DeepWalk, BFS-like, and DFS-like configurations.
+        top_k (int, optional): Recommendations per node. Defaults to 10.
+        sample_size (int, optional): Nodes to evaluate. Defaults to 50.
+        
+    Returns:
+        pd.DataFrame: Comparative performance metrics.
+        None: If graph loading fails.
+    """
     from analysis import (
         cm_recommend, compute_common_neighbors_score,
         aa_recommend, compute_adamic_adar_score,
@@ -531,20 +596,20 @@ def main():
     
     # ===================== CONFIGURATION CONSTANTS =====================
     # Hyperparameter ranges for exploration
-    P_VALUES = [0.5, 0.7, 1.0, 1.5, 2.0]           # Return parameter
-    Q_VALUES = [0.5, 0.7, 1.0, 1.5, 2.0]           # In-out parameter
-    NUM_WALKS_VALUES = [5, 10, 20]                  # Number of walks per node
-    WALK_LENGTH_VALUES = [40, 80, 120]              # Length of each walk
+    P_VALUES = [0.2, 0.5, 0.7, 1.0, 1.5, 2.0]           # Return parameter
+    Q_VALUES = [0.2, 0.5, 0.7, 1.0, 1.5, 2.0]           # In-out parameter
+    NUM_WALKS_VALUES = [5, 10, 20, 40]                  # Number of walks per node
+    WALK_LENGTH_VALUES = [40, 80, 120]                  # Length of each walk
     
     # Scalability test configuration
-    SCALABILITY_GRAPH_IDS = list(range(1, 5))      # Test on graphs 1-10
+    SCALABILITY_GRAPH_IDS = list(range(1, 11))       # Test on graphs 1-10
     SCALABILITY_P = 0.7                              # Fixed p for scalability
     SCALABILITY_Q = 0.7                              # Fixed q for scalability
     SCALABILITY_NUM_WALKS = 10                       # Fixed num_walks
     SCALABILITY_WALK_LENGTH = 80                     # Fixed walk_length
     
     # Comparison configuration
-    COMPARISON_GRAPH_ID = 5                          # Which graph to compare on
+    COMPARISON_GRAPH_ID = 10                          # Which graph to compare on
     COMPARISON_CONFIGS = [
         (0.7, 0.7, 10, 80, "Balanced (p=0.7, q=0.7)"),
         (1.0, 1.0, 10, 80, "DeepWalk (p=1.0, q=1.0)"),
@@ -561,43 +626,40 @@ def main():
     results_dir = os.path.join(os.path.dirname(__file__), 'results')
     os.makedirs(results_dir, exist_ok=True)
     
-    # 1. Hyperparameter Exploration (COMMENTED OUT - takes very long)
-    # Uncomment below to run hyperparameter exploration with execution mode selection
+    # 1. Hyperparameter Exploration
     print("\n" + "="*80)
-    print("PHASE 1: Hyperparameter Exploration (SKIPPED)")
+    print("PHASE 1: Hyperparameter Exploration")
     print("-" * 80)
-    print(f"Configuration (if enabled):")
+    print(f"Configuration:")
     print(f"  p values: {P_VALUES}")
     print(f"  q values: {Q_VALUES}")
     print(f"  num_walks values: {NUM_WALKS_VALUES}")
     print(f"  walk_length values: {WALK_LENGTH_VALUES}")
     print(f"  Total combinations: {len(P_VALUES) * len(Q_VALUES) * len(NUM_WALKS_VALUES) * len(WALK_LENGTH_VALUES)}")
-    print("  Status: Currently commented out to save time")
-    print("  To enable: Uncomment lines below in the code")
     
     # Pass constants to hyperparameter_exploration
-    # hyperparam_df = hyperparameter_exploration(
-    #     graph_id=HYPERPARAM_GRAPH_ID, 
-    #     top_k=TOP_K, 
-    #     sample_size=SAMPLE_SIZE,
-    #     p_values=P_VALUES,
-    #     q_values=Q_VALUES,
-    #     num_walks_values=NUM_WALKS_VALUES,
-    #     walk_length_values=WALK_LENGTH_VALUES,
-    #     execution_mode=execution_mode,
-    #     max_workers=max_workers
-    # )
+    hyperparam_df = hyperparameter_exploration(
+        graph_id=HYPERPARAM_GRAPH_ID, 
+        top_k=TOP_K, 
+        sample_size=SAMPLE_SIZE,
+        p_values=P_VALUES,
+        q_values=Q_VALUES,
+        num_walks_values=NUM_WALKS_VALUES,
+        walk_length_values=WALK_LENGTH_VALUES,
+        execution_mode=execution_mode,
+        max_workers=max_workers
+    )
     
-    # if hyperparam_df is not None and len(hyperparam_df) > 0:
-    #     hyperparam_csv = os.path.join(results_dir, 'nv_hyperparameter_exploration.csv')
-    #     hyperparam_df.to_csv(hyperparam_csv, index=False)
-    #     print(f"\nHyperparameter results saved to: {hyperparam_csv}")
+    if hyperparam_df is not None and len(hyperparam_df) > 0:
+        hyperparam_csv = os.path.join(results_dir, 'nv_hyperparameter_exploration.csv')
+        hyperparam_df.to_csv(hyperparam_csv, index=False)
+        print(f"\nHyperparameter results saved to: {hyperparam_csv}")
         
-    #     print("\nTop 5 configurations by F1 Score:")
-    #     top_configs = hyperparam_df.nlargest(5, 'f1_score')[['p', 'q', 'num_walks', 'walk_length', 'f1_score', 'roc_auc', 'map', 'total_runtime']]
-    #     print(top_configs.to_string(index=False))
+        print("\nTop 5 configurations by F1 Score:")
+        top_configs = hyperparam_df.nlargest(5, 'f1_score')[['p', 'q', 'num_walks', 'walk_length', 'f1_score', 'roc_auc', 'map', 'total_runtime']]
+        print(top_configs.to_string(index=False))
         
-    #     plot_hyperparameter_analysis(hyperparam_df, results_dir)
+        plot_hyperparameter_analysis(hyperparam_df, results_dir)
     
     # 2. Scalability Analysis
     print("\n" + "="*80)

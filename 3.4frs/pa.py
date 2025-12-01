@@ -1,3 +1,13 @@
+"""Preferential Attachment Friend Recommendation Algorithm.
+
+This module implements the Preferential Attachment index for link prediction.
+It predicts that high-degree nodes are more likely to form connections
+("the rich get richer" phenomenon).
+
+Time Complexity: O(n) where n=nodes
+Space Complexity: O(1)
+"""
+
 import os
 import sys
 import networkx as nx
@@ -8,9 +18,31 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def compute_preferential_attachment_score(G, u, v):
+    """Calculate preferential attachment score between two nodes.
+    
+    Score = degree(u) * degree(v)
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        u (int): First node ID.
+        v (int): Second node ID.
+        
+    Returns:
+        int: Product of node degrees.
+    """
     return G.degree(u) * G.degree(v)
 
 def recommend_friends(G, node, top_k=10):
+    """Recommend friends for a node using Preferential Attachment.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        node (int): Target node for recommendations.
+        top_k (int, optional): Number of recommendations to return. Defaults to 10.
+        
+    Returns:
+        list: List of (node_id, score) tuples sorted by score descending.
+    """
     if node not in G:
         return []
     

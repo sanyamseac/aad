@@ -1,3 +1,13 @@
+"""Jaccard Coefficient Friend Recommendation Algorithm.
+
+This module implements the Jaccard Coefficient for link prediction.
+It normalizes the common neighbors by the union of neighborhoods,
+giving a similarity score between 0 and 1.
+
+Time Complexity: O(n * d²) where n=nodes, d=average degree
+Space Complexity: O(n)
+"""
+
 import os
 import sys
 import networkx as nx
@@ -8,6 +18,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def compute_jaccard_coefficient(G, u, v):
+    """Calculate Jaccard coefficient between two nodes.
+    
+    Jaccard coefficient = |intersection| / |union| of neighbor sets.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        u (int): First node ID.
+        v (int): Second node ID.
+        
+    Returns:
+        float: Jaccard coefficient in range [0, 1].
+    """
     neighbors_u = set(G.neighbors(u))
     neighbors_v = set(G.neighbors(v))
     
@@ -20,6 +42,16 @@ def compute_jaccard_coefficient(G, u, v):
     return len(intersection) / len(union)
 
 def recommend_friends(G, node, top_k=10):
+    """Recommend friends for a node using Jaccard Coefficient.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        node (int): Target node for recommendations.
+        top_k (int, optional): Number of recommendations to return. Defaults to 10.
+        
+    Returns:
+        list: List of (node_id, score) tuples sorted by score descending.
+    """
     if node not in G:
         return []
     

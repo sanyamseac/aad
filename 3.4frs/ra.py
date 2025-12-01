@@ -1,3 +1,13 @@
+"""Resource Allocation Friend Recommendation Algorithm.
+
+This module implements the Resource Allocation index for link prediction.
+It models resource transfer through common neighbors, weighting by 1/degree.
+Empirical studies show this often outperforms other heuristics.
+
+Time Complexity: O(n * d²) where n=nodes, d=average degree
+Space Complexity: O(n)
+"""
+
 import os
 import sys
 import networkx as nx
@@ -8,6 +18,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from graph import create_complete_graph
 
 def compute_resource_allocation_score(G, u, v):
+    """Calculate Resource Allocation score between two nodes.
+    
+    Sum of 1/degree(w) over all common neighbors w.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        u (int): First node ID.
+        v (int): Second node ID.
+        
+    Returns:
+        float: Resource allocation score.
+    """
     neighbors_u = set(G.neighbors(u))
     neighbors_v = set(G.neighbors(v))
     common_neighbors = neighbors_u.intersection(neighbors_v)
@@ -21,6 +43,16 @@ def compute_resource_allocation_score(G, u, v):
     return score
 
 def recommend_friends(G, node, top_k=10):
+    """Recommend friends for a node using Resource Allocation.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        node (int): Target node for recommendations.
+        top_k (int, optional): Number of recommendations to return. Defaults to 10.
+        
+    Returns:
+        list: List of (node_id, score) tuples sorted by score descending.
+    """
     if node not in G:
         return []
     

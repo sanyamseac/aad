@@ -226,7 +226,25 @@ def load_and_prepare_graph(graph_id, sample_size=50):
 
 
 def plot_scalability_results(df, results_dir, colors):
-    """Generate plots comparing scalability metrics across algorithms."""
+    """Generate comprehensive scalability visualization plots.
+    
+    Creates a 2x3 grid of plots showing:
+    - Runtime vs graph size
+    - Memory usage vs graph size
+    - Runtime per node vs graph size
+    - Theoretical vs actual complexity comparison
+    - Average degree trends
+    - Nodes vs edges relationship
+    
+    Args:
+        df (pd.DataFrame): Results dataframe with columns: algorithm, nodes, edges,
+            runtime, memory_mb, runtime_per_node, theoretical_complexity, avg_degree.
+        results_dir (str): Directory path to save the plot.
+        colors (dict): Mapping of algorithm names to color codes.
+        
+    Saves:
+        scalability_analysis.png in results_dir.
+    """
     os.makedirs(results_dir, exist_ok=True)
     algorithms = df['algorithm'].unique()
     
@@ -289,7 +307,21 @@ def plot_scalability_results(df, results_dir, colors):
 
 
 def plot_theoretical_vs_actual(df, results_dir, algorithms, colors):
-    """Create detailed plots comparing theoretical vs actual complexity for each algorithm."""
+    """Create detailed theoretical vs actual complexity comparison plots.
+    
+    Generates individual plots for each algorithm showing normalized theoretical
+    complexity vs actual runtime, plus an aggregate efficiency ratio plot.
+    Includes correlation coefficients for each algorithm.
+    
+    Args:
+        df (pd.DataFrame): Results dataframe with complexity and runtime data.
+        results_dir (str): Directory path to save the plot.
+        algorithms (list): List of algorithm names to include.
+        colors (dict): Mapping of algorithm names to color codes.
+        
+    Saves:
+        theoretical_vs_actual_complexity.png in results_dir.
+    """
     
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     fig.suptitle('Theoretical vs Actual Time Complexity Analysis', fontsize=16, fontweight='bold')
@@ -343,7 +375,20 @@ def plot_theoretical_vs_actual(df, results_dir, algorithms, colors):
 
 
 def plot_performance_metrics(df, results_dir, algorithms, colors):
-    """Create plots for performance metrics vs graph size."""
+    """Generate performance metrics visualization across graph sizes.
+    
+    Creates plots for precision, recall, F1-score, ROC-AUC, MAP, and
+    overall normalized performance trends as graphs scale.
+    
+    Args:
+        df (pd.DataFrame): Results dataframe with performance metrics.
+        results_dir (str): Directory path to save the plot.
+        algorithms (list): List of algorithm names to include.
+        colors (dict): Mapping of algorithm names to color codes.
+        
+    Saves:
+        performance_metrics_vs_size.png in results_dir.
+    """
     
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     fig.suptitle('Performance Metrics vs Graph Size', fontsize=16, fontweight='bold')
@@ -389,7 +434,29 @@ def plot_performance_metrics(df, results_dir, algorithms, colors):
 
 
 def main():
-    """Main execution function for comprehensive analysis."""
+    """Execute comprehensive friend recommendation algorithm analysis.
+    
+    This is the main analysis pipeline that:
+    1. Loads all 10 Facebook ego-network graphs
+    2. Evaluates 5 heuristic algorithms (CN, AA, JC, PA, RA) on each graph
+    3. Measures performance (Precision, Recall, F1, ROC-AUC, MAP)
+    4. Tracks scalability (runtime, memory, per-node costs)
+    5. Compares theoretical vs actual time complexity
+    6. Generates comprehensive visualizations
+    7. Computes statistical summaries and identifies best performers
+    
+    The analysis runs 50 evaluations (5 algorithms × 10 graphs) with
+    50 sampled nodes per graph for recommendation generation.
+    
+    Returns:
+        pd.DataFrame: Complete results dataframe with all metrics.
+        
+    Saves:
+        - comprehensive_analysis.csv: Raw results data
+        - scalability_analysis.png: Scalability plots
+        - theoretical_vs_actual_complexity.png: Complexity comparison
+        - performance_metrics_vs_size.png: Performance trends
+    """
     print("  Analysis of Friend Recommendation Algorithms")
     print("="*80 + "\n")
     
