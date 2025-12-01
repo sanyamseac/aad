@@ -178,10 +178,11 @@ def main():
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('Runtime vs. Theoretical Complexity', fontsize=18)
 
-    # Plot 3: Degree Centrality (Time vs. V)
-    axes[0, 0].plot(df['Complex_V'], df['Time_Degree'], 'o-b')
+    # Plot 3: Degree Centrality (Time vs. V+E)
+    # For sparse graphs, V+E ≈ E, so we approximate with V+E
+    axes[0, 0].plot(df['Nodes'] + df['Edges'], df['Time_Degree'], 'o-b')
     axes[0, 0].set_title('Degree Centrality', fontsize=14)
-    axes[0, 0].set_xlabel('Theoretical Complexity: O(V)', fontsize=12)
+    axes[0, 0].set_xlabel('Theoretical Complexity: O(V+E)', fontsize=12)
     axes[0, 0].set_ylabel('Time (seconds)', fontsize=12)
     axes[0, 0].grid(True)
 
@@ -192,10 +193,10 @@ def main():
     axes[0, 1].set_ylabel('Time (seconds)', fontsize=12)
     axes[0, 1].grid(True)
 
-    # Plot 5: Betweenness Centrality (Time vs. V*(V+E))
-    axes[1, 0].plot(df['Complex_V_VE'], df['Time_Betweenness'], 's-g')
+    # Plot 5: Betweenness Centrality (Time vs. V×E)
+    axes[1, 0].plot(df['Nodes'] * df['Edges'], df['Time_Betweenness'], 's-g')
     axes[1, 0].set_title('Betweenness Centrality', fontsize=14)
-    axes[1, 0].set_xlabel('Theoretical Complexity: O(V(V+E))', fontsize=12)
+    axes[1, 0].set_xlabel('Theoretical Complexity: O(V×E)', fontsize=12)
     axes[1, 0].set_ylabel('Time (seconds)', fontsize=12)
     axes[1, 0].grid(True)
 
