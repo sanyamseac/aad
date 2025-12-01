@@ -256,8 +256,6 @@ Edit `nv_analysis.py` to modify:
 
 2. **Perozzi, B., Al-Rfou, R., & Skiena, S.** (2014). DeepWalk: Online learning of social representations. *KDD*, 701–710.
 
-3. **McAuley, J., & Leskovec, J.** (2012). Learning to discover social circles in ego networks. *NIPS*.
-
 4. **Mikolov, T., et al.** (2013). Distributed representations of words and phrases and their compositionality. *NIPS*, 26.
 
 ---
