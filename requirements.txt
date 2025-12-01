@@ -1,0 +1,11 @@
+matplotlib
+matplotlib-inline
+networkx
+numpy
+scikit-learn
+pandas
+gensim
+tqdm
+questionary
+seaborn
+psutil
