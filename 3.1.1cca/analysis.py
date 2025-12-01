@@ -2,11 +2,14 @@ import os
 import sys
 import time
 import random
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
 
-# Include requested imports for dataset access
+random.seed(67)
+
+# Include imports for dataset access
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graph import create_complete_graph
 
@@ -20,7 +23,8 @@ from ufa_by_size import run_ufa_size
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PLOT_DIR = os.path.join(BASE_DIR, 'plots')
 ANALYSIS_DIR = os.path.join(BASE_DIR, 'analysis')
-for d in [PLOT_DIR, ANALYSIS_DIR]: os.makedirs(d, exist_ok=True)
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+for d in [PLOT_DIR, ANALYSIS_DIR, DATA_DIR]: os.makedirs(d, exist_ok=True)
 for d in ['bfs', 'dfs', 'ufa_rank', 'ufa_size']: os.makedirs(os.path.join(PLOT_DIR, d), exist_ok=True)
 
 # =====================================================
@@ -173,12 +177,12 @@ def run_analysis_A():
         plt.savefig(os.path.join(PLOT_DIR, algo, 'A_Invariance.png'))
         plt.close()
 
-    with open(os.path.join(ANALYSIS_DIR, 'A_Invariance.md'), 'w') as f:
-        f.write("# Analysis A: Start Node Invariance\n\n")
-        f.write("| Algo | Mean (s) | StdDev (s) | Coeff Var |\n|---|---|---|---|\n")
+    with open(os.path.join(ANALYSIS_DIR, 'A_Invariance.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Algorithm', 'Mean (s)', 'StdDev (s)', 'Coeff Var (%)'])
         for algo in ["bfs", "dfs"]:
             mu, sigma = np.mean(results[algo]), np.std(results[algo])
-            f.write(f"| {algo.upper()} | {mu:.5f} | {sigma:.5f} | {(sigma/mu)*100:.2f}% |\n")
+            writer.writerow([algo.upper(), f"{mu:.5f}", f"{sigma:.5f}", f"{(sigma/mu)*100:.2f}"])
 
 # =====================================================
 # ANALYSIS B: Time Complexity
@@ -241,10 +245,26 @@ def run_analysis_B():
         plt.savefig(os.path.join(PLOT_DIR, algo, 'B_Complexity_Grid.png'))
         plt.close()
 
-    with open(os.path.join(ANALYSIS_DIR, 'B_Complexity.md'), 'w') as f:
-        f.write("# Analysis B: Time Complexity\n\n| Files | V | E | BFS(s) | DFS(s) | UFA Rank(s) | UFA Size(s) |\n|---|---|---|---|---|---|---|\n")
+    with open(os.path.join(ANALYSIS_DIR, 'B_Complexity.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Files', 'V', 'E', 'BFS(s)', 'DFS(s)', 'UFA Rank(s)', 'UFA Size(s)'])
         for i, s in enumerate(stats):
-            f.write(f"| {i+1} | {s['V']} | {s['E']} | {s['bfs']:.4f} | {s['dfs']:.4f} | {s['ufa_rank']:.4f} | {s['ufa_size']:.4f} |\n")
+            writer.writerow([i+1, s['V'], s['E'], f"{s['bfs']:.4f}", f"{s['dfs']:.4f}", f"{s['ufa_rank']:.4f}", f"{s['ufa_size']:.4f}"])
+    
+    # Save complete performance table to data directory
+    with open(os.path.join(DATA_DIR, 'complete_performance.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Files', 'V', 'E', 'BFS(s)', 'DFS(s)', 'UFA Rank(s)', 'UFA Size(s)'])
+        for i, s in enumerate(stats):
+            writer.writerow([i+1, s['V'], s['E'], f"{s['bfs']:.4f}", f"{s['dfs']:.4f}", f"{s['ufa_rank']:.4f}", f"{s['ufa_size']:.4f}"])
+    
+    # Save individual algorithm performance data to data directory
+    for algo in ['bfs', 'dfs', 'ufa_rank', 'ufa_size']:
+        with open(os.path.join(DATA_DIR, f'{algo}_performance.csv'), 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Files', 'V', 'E', f'{algo.upper()}(s)'])
+            for i, s in enumerate(stats):
+                writer.writerow([i+1, s['V'], s['E'], f"{s[algo]:.4f}"])
 
 # =====================================================
 # ANALYSIS C: Order Invariance
@@ -299,10 +319,11 @@ def run_analysis_C():
         plt.savefig(os.path.join(PLOT_DIR, algo, 'C_Order_Invariance.png'))
         plt.close()
 
-    with open(os.path.join(ANALYSIS_DIR, 'C_Order.md'), 'w') as f:
-        f.write("# Analysis C: Order Invariance\n\n| Algo | Normal(s) | Shuffled(s) | Diff |\n|---|---|---|---|\n")
+    with open(os.path.join(ANALYSIS_DIR, 'C_Order.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Algorithm', 'Normal(s)', 'Shuffled(s)', 'Diff(s)'])
         for k, (n, s) in results.items():
-            f.write(f"| {k.upper()} | {n:.5f} | {s:.5f} | {abs(n-s):.5f}s |\n")
+            writer.writerow([k.upper(), f"{n:.5f}", f"{s:.5f}", f"{abs(n-s):.5f}"])
 
 # =====================================================
 # ANALYSIS D: COMPREHENSIVE CONNECTIVITY METRICS
@@ -331,15 +352,13 @@ def run_full_connectivity_analysis():
         "gc_coverage": [], "diameter": [], "avg_path": []
     }
 
-    report_path = os.path.join(ANALYSIS_DIR, 'D_Connectivity_Analysis.md')
-    with open(report_path, 'w') as f:
-        f.write("# Comprehensive Network Connectivity Analysis\n\n")
-        f.write("## Metric Definitions\n")
-        f.write("- **Density:** Ratio of actual edges to possible edges.\n")
-        f.write("- **Clustering Coefficient:** Measure of the degree to which nodes cluster together.\n")
-        f.write("- **Giant Component (GC):** The largest connected subgraph.\n")
-        f.write("- **Diameter:** Longest shortest path in the GC.\n\n")
-        f.write("## Detailed Data Log\n\n")
+    report_path = os.path.join(ANALYSIS_DIR, 'D_Connectivity_Analysis.csv')
+    with open(report_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        # Write header
+        writer.writerow(['Step', 'Files', 'Nodes', 'Edges', 'Density', 'Avg Degree', 
+                        'Clustering Coeff', 'Num Components', 'GC Size (Nodes)', 
+                        'GC Size (Edges)', 'GC Coverage (%)', 'Diameter', 'Avg Path Length'])
 
     for i in range(1, 11):
         print(f"  > Processing File {i}/10...")
@@ -391,13 +410,31 @@ def run_full_connectivity_analysis():
         history["diameter"].append(diameter)
         history["avg_path"].append(avg_path)
 
-        with open(report_path, 'a') as f:
-            f.write(f"### Step {i} (Files 1-{i})\n")
-            f.write(f"- **Structure:** {V:,} Nodes, {E:,} Edges\n")
-            f.write(f"- **Connectivity:** {num_comp} Component(s), GC covers {gc_cov:.2f}%\n")
-            f.write(f"- **Density:** {density:.6f} | **Avg Degree:** {avg_degree:.2f}\n")
-            f.write(f"- **Clustering Coeff:** {clustering:.4f}\n")
-            f.write(f"- **GC Diameter:** {diameter} | **GC Avg Path:** {avg_path:.4f}\n\n")
+        with open(report_path, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([i, i, V, E, f"{density:.6f}", f"{avg_degree:.2f}", 
+                           f"{clustering:.4f}", num_comp, gc_size_n, gc_size_e, 
+                           f"{gc_cov:.2f}", diameter, f"{avg_path:.4f}"])
+    
+    # Save detailed connectivity data to data directory
+    with open(os.path.join(DATA_DIR, 'detailed_connectivity.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Step', 'Files', 'V', 'E', 'Density', 'Avg Degree', 
+                        'Clustering', 'Components', 'GC Coverage', 'Diameter', 'Avg Path'])
+        for i in range(len(history["files"])):
+            writer.writerow([
+                history["files"][i],
+                history["files"][i],
+                history["nodes"][i],
+                history["edges"][i],
+                f"{history['density'][i]:.4f}",
+                f"{history['avg_degree'][i]:.2f}",
+                f"{history['clustering'][i]:.4f}",
+                history["num_components"][i],
+                f"{history['gc_coverage'][i]:.2f}%",
+                history["diameter"][i],
+                f"{history['avg_path'][i]:.2f}"
+            ])
 
     print("  > Generating Metric Plots...")
     plot_specs = [

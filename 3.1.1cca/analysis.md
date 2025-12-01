@@ -86,18 +86,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 
 ### Measured Performance Data
 
-| Files | V | E | BFS(s) |
-|---|---:|---:|---:|
-| 1 | 348 | 2,866 | 0.0016 |
-| 2 | 1,390 | 30,654 | 0.0085 |
-| 3 | 2,167 | 45,414 | 0.0126 |
-| 4 | 2,916 | 76,190 | 0.0333 |
-| 5 | 3,463 | 81,550 | 0.0229 |
-| 6 | 3,670 | 84,875 | 0.0254 |
-| 7 | 3,730 | 85,080 | 0.0504 |
-| 8 | 3,833 | 86,243 | 0.0251 |
-| 9 | 4,003 | 88,069 | 0.0269 |
-| 10 | 4,039 | 88,234 | 0.0348 |
+*Raw performance data available in: `data/bfs_performance.csv`*
 
 ### Strengths, Weaknesses, and Use Cases
 
@@ -189,18 +178,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 
 ### Measured Performance Data
 
-| Files | V | E | DFS(s) |
-|---|---:|---:|---:|
-| 1 | 348 | 2,866 | 0.0018 |
-| 2 | 1,390 | 30,654 | 0.0073 |
-| 3 | 2,167 | 45,414 | 0.0119 |
-| 4 | 2,916 | 76,190 | 0.0236 |
-| 5 | 3,463 | 81,550 | 0.0240 |
-| 6 | 3,670 | 84,875 | 0.0229 |
-| 7 | 3,730 | 85,080 | 0.0326 |
-| 8 | 3,833 | 86,243 | 0.0229 |
-| 9 | 4,003 | 88,069 | 0.0234 |
-| 10 | 4,039 | 88,234 | 0.0303 |
+*Raw performance data available in: `data/dfs_performance.csv`*
 
 ### Strengths, Weaknesses, and Use Cases
 
@@ -319,18 +297,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 
 ### Measured Performance Data
 
-| Files | V | E | UFA Rank(s) | UFA Size(s) |
-|---|---:|---:|---:|---:|
-| 1 | 348 | 2,866 | 0.0036 | 0.0018 |
-| 2 | 1,390 | 30,654 | 0.0234 | 0.0186 |
-| 3 | 2,167 | 45,414 | 0.0284 | 0.0285 |
-| 4 | 2,916 | 76,190 | 0.0668 | 0.0628 |
-| 5 | 3,463 | 81,550 | 0.0545 | 0.0547 |
-| 6 | 3,670 | 84,875 | 0.0596 | 0.0528 |
-| 7 | 3,730 | 85,080 | 0.0576 | 0.0649 |
-| 8 | 3,833 | 86,243 | 0.0638 | 0.0728 |
-| 9 | 4,003 | 88,069 | 0.0579 | 0.0589 |
-| 10 | 4,039 | 88,234 | 0.0686 | 0.0627 |
+*Raw performance data available in: `data/ufa_rank_performance.csv` and `data/ufa_size_performance.csv`*
 
 ### Strengths, Weaknesses, and Use Cases
 
@@ -364,18 +331,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 
 ### Complete Performance Table
 
-| Files | V | E | BFS(s) | DFS(s) | UFA Rank(s) | UFA Size(s) |
-|---|---:|---:|---:|---:|---:|---:|
-| 1 | 348 | 2,866 | 0.0016 | 0.0018 | 0.0036 | 0.0018 |
-| 2 | 1,390 | 30,654 | 0.0085 | 0.0073 | 0.0234 | 0.0186 |
-| 3 | 2,167 | 45,414 | 0.0126 | 0.0119 | 0.0284 | 0.0285 |
-| 4 | 2,916 | 76,190 | 0.0333 | 0.0236 | 0.0668 | 0.0628 |
-| 5 | 3,463 | 81,550 | 0.0229 | 0.0240 | 0.0545 | 0.0547 |
-| 6 | 3,670 | 84,875 | 0.0254 | 0.0229 | 0.0596 | 0.0528 |
-| 7 | 3,730 | 85,080 | 0.0504 | 0.0326 | 0.0576 | 0.0649 |
-| 8 | 3,833 | 86,243 | 0.0251 | 0.0229 | 0.0638 | 0.0728 |
-| 9 | 4,003 | 88,069 | 0.0269 | 0.0234 | 0.0579 | 0.0589 |
-| 10 | 4,039 | 88,234 | 0.0348 | 0.0303 | 0.0686 | 0.0627 |
+*Complete algorithm performance comparison available in: `data/complete_performance.csv`*
 
 ### Comparative Analysis
 
@@ -660,20 +616,9 @@ The network maintains a single giant component covering 98-100% of nodes:
 
 ## Detailed Network Connectivity Data
 
-The following table provides comprehensive connectivity metrics for each dataset step, showing how network structure evolves as ego-networks are progressively merged.
+*Comprehensive connectivity metrics for each dataset step are available in: `data/detailed_connectivity.csv`*
 
-| Step | Files | V | E | Density | Avg Degree | Clustering | Components | GC Coverage | Diameter | Avg Path |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 1 | 348 | 2,866 | 0.0475 | 16.47 | 0.6546 | 1 | 100.00% | 2 | 1.95 |
-| 2 | 2 | 1,390 | 30,654 | 0.0318 | 44.11 | 0.5944 | 1 | 100.00% | 3 | 2.33 |
-| 3 | 3 | 2,167 | 45,414 | 0.0194 | 41.91 | 0.5739 | 1 | 100.00% | 4 | 2.71 |
-| 4 | 4 | 2,916 | 76,190 | 0.0179 | 52.26 | 0.5969 | 1 | 100.00% | 4 | 3.07 |
-| 5 | 5 | 3,463 | 81,550 | 0.0136 | 47.10 | 0.6011 | 1 | 100.00% | 6 | 3.57 |
-| 6 | 6 | 3,670 | 84,875 | 0.0126 | 46.25 | 0.6013 | 1 | 100.00% | 5 | 3.44 |
-| 7 | 7 | 3,730 | 85,080 | 0.0122 | 45.62 | 0.6022 | 2 | 98.39% | 5 | 3.49 |
-| 8 | 8 | 3,833 | 86,243 | 0.0117 | 45.00 | 0.6038 | 1 | 100.00% | 6 | 3.52 |
-| 9 | 9 | 4,003 | 88,069 | 0.0110 | 44.00 | 0.6045 | 1 | 100.00% | 8 | 3.71 |
-| 10 | 10 | 4,039 | 88,234 | 0.0108 | 43.69 | 0.6055 | 1 | 100.00% | 8 | 3.72 |
+The data shows how network structure evolves as ego-networks are progressively merged.
 
 **Key Observations:**
 - Network grows 11.6× in nodes and 30.8× in edges
