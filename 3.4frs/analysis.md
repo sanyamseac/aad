@@ -400,10 +400,6 @@ Edit `analysis.py` to modify:
 
 7. **Lü, L., & Zhou, T.** (2011). Link prediction in complex networks: A survey. *Physica A*, 390(6), 1150–1170.
 
-8. **Grover, A., & Leskovec, J.** (2016). node2vec: Scalable feature learning for networks. *KDD*, 855–864.
-
-9. **Perozzi, B., Al-Rfou, R., & Skiena, S.** (2014). DeepWalk: Online learning of social representations. *KDD*, 701–710.
-
 ---
 
 ## Conclusion
