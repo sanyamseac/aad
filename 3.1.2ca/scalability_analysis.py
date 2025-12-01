@@ -4,7 +4,9 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
+# Setup results directory
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+os.makedirs(RESULTS_DIR, exist_ok=True)
 
 # Import the 4 centrality functions
 from dc import degree_centrality
@@ -124,8 +126,9 @@ def main():
     print(df)
     
     # Save the table to a CSV file for your report
-    df.to_csv("scalability_results.csv")
-    print("\nResults saved to 'scalability_results.csv'")
+    csv_path = os.path.join(RESULTS_DIR, "scalability_results.csv")
+    df.to_csv(csv_path)
+    print(f"\nResults saved to '{csv_path}'")
 
     # CREATE PLOTS (TIME vs. SIZE) 
     
@@ -147,8 +150,9 @@ def main():
     plt.ylabel('Time (seconds)', fontsize=12)
     plt.legend(fontsize=11)
     plt.grid(True)
-    plt.savefig('scalability_vs_nodes.png')
-    print("Saved 'scalability_vs_nodes.png'")
+    nodes_plot = os.path.join(RESULTS_DIR, 'scalability_vs_nodes.png')
+    plt.savefig(nodes_plot)
+    print(f"Saved '{nodes_plot}'")
 
     # Plot 2: Edges vs. Time
     plt.figure(figsize=(12, 8))
@@ -162,8 +166,9 @@ def main():
     plt.ylabel('Time (seconds)', fontsize=12)
     plt.legend(fontsize=11)
     plt.grid(True)
-    plt.savefig('scalability_vs_edges.png')
-    print("Saved 'scalability_vs_edges.png'")
+    edges_plot = os.path.join(RESULTS_DIR, 'scalability_vs_edges.png')
+    plt.savefig(edges_plot)
+    print(f"Saved '{edges_plot}'")
     
     # CREATE PLOTS (TIME vs. COMPLEXITY) 
 
@@ -206,10 +211,11 @@ def main():
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     
     # Save the combined plot
-    plt.savefig('scalability_vs_complexity.png')
-    print("Saved 'scalability_vs_complexity.png'")
+    complexity_plot = os.path.join(RESULTS_DIR, 'scalability_vs_complexity.png')
+    plt.savefig(complexity_plot)
+    print(f"Saved '{complexity_plot}'")
     
-    print("\nAll analysis finished.")
+    print(f"\nAll analysis finished. Results saved to '{RESULTS_DIR}/'.")
 
 if __name__ == "__main__":
     main()

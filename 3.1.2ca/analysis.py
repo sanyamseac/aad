@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
+# Setup results directory
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+os.makedirs(RESULTS_DIR, exist_ok=True)
 
 # Import the 4 centrality functions 
 from dc import degree_centrality
@@ -130,7 +133,7 @@ def main():
     plt.tight_layout()
     
     # Save the heatmap
-    heatmap_file = "correlation_heatmap.png"
+    heatmap_file = os.path.join(RESULTS_DIR, "correlation_heatmap.png")
     plt.savefig(heatmap_file, dpi=300, bbox_inches='tight')
     print(f"Saved correlation heatmap to '{heatmap_file}'")
     plt.close()
@@ -178,7 +181,7 @@ def main():
     plt.tight_layout()
     
     # Save the comparison plot
-    top_nodes_file = "top_nodes_comparison.png"
+    top_nodes_file = os.path.join(RESULTS_DIR, "top_nodes_comparison.png")
     plt.savefig(top_nodes_file, dpi=300, bbox_inches='tight')
     print(f"Saved top nodes comparison to '{top_nodes_file}'")
     plt.close()
@@ -214,7 +217,7 @@ def main():
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])           # Adjust for suptitle
     
     # Saving plot to a file
-    output_fig = "centrality_distributions.png"
+    output_fig = os.path.join(RESULTS_DIR, "centrality_distributions.png")
     plt.savefig(output_fig)
     print(f"Saved distribution plots to '{output_fig}'")
     
