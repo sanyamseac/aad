@@ -24,7 +24,7 @@ for d in [PLOT_DIR, ANALYSIS_DIR]: os.makedirs(d, exist_ok=True)
 for d in ['bfs', 'dfs', 'ufa_rank', 'ufa_size']: os.makedirs(os.path.join(PLOT_DIR, d), exist_ok=True)
 
 # =====================================================
-# CUSTOM METRIC FUNCTIONS (FROM SCRATCH)
+# METRIC FUNCTIONS FOR SPECIAL INSIGHTS INTO THE GRAPH
 # =====================================================
 
 def calculate_density(V, E):
