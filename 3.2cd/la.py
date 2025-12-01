@@ -1,3 +1,13 @@
+"""Leiden Algorithm for Community Detection.
+
+This module implements the Leiden algorithm, an improved version of the Louvain
+method that guarantees well-connected communities. It adds a refinement phase
+to prevent poorly connected communities.
+
+Time Complexity: O(n log n) in practice
+Space Complexity: O(n + m)
+"""
+
 import os
 import sys
 import random
@@ -11,7 +21,17 @@ from graph import create_complete_graph
 
 
 def modularity(G, communities):
-    """Calculate modularity of a partition."""
+    """Calculate modularity Q of a partition.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        communities (dict): Mapping from community ID to set of nodes.
+        
+    Returns:
+        float: Modularity value Q.
+        
+    Time Complexity: O(n²) in worst case
+    """
     m = G.number_of_edges()
     if m == 0:
         return 0.0
@@ -30,7 +50,21 @@ def modularity(G, communities):
 
 
 def move_nodes_fast(G, partition, randomize=True):
-    """Fast local moving of nodes (Phase 1 of Leiden)."""
+    """Fast local moving of nodes to optimize modularity (Phase 1 of Leiden).
+    
+    Moves each node to the neighboring community that provides the greatest
+    increase in modularity. Repeats until no improvement is possible.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        partition (dict): Node to community ID mapping.
+        randomize (bool): Whether to shuffle node order.
+        
+    Returns:
+        bool: True if any node was moved.
+        
+    Time Complexity: O(n * d) where d is average degree
+    """
     nodes = list(G.nodes())
     if randomize:
         random.shuffle(nodes)
@@ -80,7 +114,20 @@ def move_nodes_fast(G, partition, randomize=True):
 
 
 def refine_partition(G, partition):
-    """Refine partition by splitting communities (Phase 2 of Leiden)."""
+    """Refine partition by splitting poorly connected communities (Phase 2 of Leiden).
+    
+    Ensures well-connected communities by identifying and splitting communities
+    that have weak internal connectivity.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        partition (dict): Node to community ID mapping.
+        
+    Returns:
+        dict: Refined partition with potentially more communities.
+        
+    Time Complexity: O(n + m)
+    """
     # Create subgraph for each community
     communities = defaultdict(set)
     for node, comm in partition.items():
@@ -119,7 +166,22 @@ def refine_partition(G, partition):
 
 
 def aggregate_graph(G, partition):
-    """Create aggregate graph where each community becomes a super-node."""
+    """Create aggregate graph where each community becomes a super-node (Phase 3).
+    
+    Collapses nodes within each community into a single super-node, with edge
+    weights representing the number of edges between communities.
+    
+    Args:
+        G (networkx.Graph): The original graph.
+        partition (dict): Node to community ID mapping.
+        
+    Returns:
+        tuple: (aggregate_graph, community_mapping) where:
+            - aggregate_graph: NetworkX graph with super-nodes
+            - community_mapping: Super-node to original nodes mapping
+            
+    Time Complexity: O(m)
+    """
     import networkx as nx
     
     # Create mapping of communities
@@ -150,16 +212,20 @@ def aggregate_graph(G, partition):
 
 
 def leiden_algorithm(G, max_iterations=10, resolution=1.0):
-    """
-    Leiden algorithm for community detection.
+    """Apply the Leiden algorithm for community detection.
     
-    Parameters:
-    - G: NetworkX graph (unweighted, undirected)
-    - max_iterations: Maximum number of iterations
-    - resolution: Resolution parameter (higher = more communities)
+    An improved version of Louvain that ensures well-connected communities
+    through three phases: fast local moving, refinement, and aggregation.
     
+    Args:
+        G (networkx.Graph): The input graph (unweighted, undirected).
+        max_iterations (int): Maximum number of algorithm iterations.
+        resolution (float): Resolution parameter (higher = more communities).
+        
     Returns:
-    - partition: Dictionary mapping nodes to community IDs
+        dict: Node to community ID mapping.
+        
+    Time Complexity: O(n log n) on average
     """
     # Initialize: each node in its own community
     partition = {node: i for i, node in enumerate(G.nodes())}

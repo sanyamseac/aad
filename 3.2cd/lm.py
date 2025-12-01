@@ -1,3 +1,13 @@
+"""Louvain Method for Community Detection.
+
+This module implements the Louvain method, a greedy optimization algorithm
+for detecting communities in large networks by maximizing modularity.
+The algorithm operates in two phases: local optimization and network aggregation.
+
+Time Complexity: O(n log n) in practice (worst case O(n²))
+Space Complexity: O(n + m)
+"""
+
 import os
 import sys
 from collections import defaultdict
@@ -8,7 +18,20 @@ from graph import create_complete_graph
 
 
 def calculate_modularity(G, communities):
-    """Calculate the modularity of a graph given a community assignment."""
+    """Calculate the modularity Q of a graph given a community assignment.
+    
+    Modularity measures the strength of division of a network into communities,
+    comparing actual edges within communities to expected edges in a random graph.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        communities (dict): Node to community ID mapping.
+        
+    Returns:
+        float: Modularity value Q, typically in range [-0.5, 1.0].
+        
+    Time Complexity: O(n²) in worst case
+    """
     m = G.number_of_edges()
     if m == 0:
         return 0.0
@@ -34,12 +57,22 @@ def calculate_modularity(G, communities):
 
 
 def louvain_algorithm(G, max_iterations=100):
-    """
-    Implements the Louvain algorithm for community detection.
+    """Apply the Louvain algorithm for community detection.
     
+    Optimizes modularity by iteratively moving nodes to the community
+    that yields the greatest modularity increase. Continues until no
+    improvement is possible.
+    
+    Args:
+        G (networkx.Graph): The input graph.
+        max_iterations (int): Maximum number of optimization passes.
+        
     Returns:
-        communities: dict mapping node -> community_id
-        modularity: final modularity value
+        tuple: (communities, modularity) where:
+            - communities (dict): Node to community ID mapping
+            - modularity (float): Final modularity value Q
+            
+    Time Complexity: O(n log n) on average
     """
     
     # Initialize: each node is in its own community

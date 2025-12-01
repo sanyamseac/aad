@@ -1,3 +1,13 @@
+"""Girvan-Newman Community Detection Algorithm.
+
+This module implements the Girvan-Newman algorithm for detecting communities in networks.
+The algorithm iteratively removes edges with the highest betweenness centrality,
+gradually separating the network into communities.
+
+Time Complexity: O(m²n) where m=edges, n=nodes
+Space Complexity: O(n + m)
+"""
+
 import os
 import sys
 from collections import deque
@@ -9,9 +19,19 @@ from graph import create_complete_graph
 
 
 def calculate_edge_betweenness(G):
-    """
-    Calculate edge betweenness centrality for all edges in the graph.
-    Returns a dictionary with edges as keys and betweenness scores as values.
+    """Calculate edge betweenness centrality for all edges in the graph.
+    
+    Uses BFS from each node to compute shortest paths, then accumulates
+    betweenness scores for each edge based on the number of shortest paths
+    passing through it.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        
+    Returns:
+        dict: Dictionary mapping edges (u, v) to their betweenness scores.
+        
+    Time Complexity: O(mn) where m=edges, n=nodes
     """
     edge_betweenness = {edge: 0.0 for edge in G.edges()}
     
@@ -68,6 +88,18 @@ def calculate_edge_betweenness(G):
 
 
 def get_connected_components(G):
+    """Find all connected components in the graph.
+    
+    Uses BFS to identify separate connected components in the graph.
+    
+    Args:
+        G (networkx.Graph): The graph structure.
+        
+    Returns:
+        list: List of sets, where each set contains nodes in one component.
+        
+    Time Complexity: O(n + m)
+    """
     """
     Find all connected components in the graph.
     Returns a list of sets, where each set contains nodes in one component.
@@ -97,16 +129,21 @@ def get_connected_components(G):
 
 
 def girvan_newman(G, num_communities=None, max_iterations=None):
-    """
-    Girvan-Newman algorithm for community detection.
+    """Apply the Girvan-Newman algorithm for community detection.
     
-    Parameters:
-    - G: The input graph
-    - num_communities: Stop when this many communities are found (optional)
-    - max_iterations: Maximum number of edge removals (optional)
+    Iteratively removes edges with highest betweenness centrality until
+    the desired number of communities is reached or max iterations exceeded.
     
+    Args:
+        G (networkx.Graph): The input graph.
+        num_communities (int, optional): Stop when this many communities are found.
+        max_iterations (int, optional): Maximum number of edge removals.
+        
     Returns:
-    - List of tuples: (iteration, communities, removed_edge)
+        list: List of tuples (iteration, communities, removed_edge) tracking
+              the algorithm's progress at each step.
+              
+    Time Complexity: O(m²n) for the full algorithm
     """
     # Create a copy of the graph to avoid modifying the original
     G_copy = copy.deepcopy(G)
