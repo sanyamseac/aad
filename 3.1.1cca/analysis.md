@@ -9,7 +9,7 @@ We analyze the runtime behaviour, invariance properties, and connectivity metric
 These algorithms are foundational for network analysis, social graph processing, and systems problems including connectivity discovery, component labelling, shortest-path layering, and dynamic connectivity. Understanding their empirical performance on real network data enables optimal algorithm selection for larger pipelines (community detection, epidemic modelling, influence propagation).
 
 **Methodology**
-Results are obtained through timed runs on real-world ego-network graph files. All measurements, plots, and detailed analysis are available in `3.1.1cca/analysis/` and `3.1.1cca/plots/` directories.
+Results are obtained through timed runs on real-world ego-network graph files. All measurements, plots, and detailed analysis are available in `3.1.1cca/analysis/` and `3.1.1cca/results/results/plots/` directories.
 
 ---
 
@@ -47,7 +47,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 ### Empirical Performance
 
 #### Complexity Grid (Runtime vs Graph Size)
-![BFS Complexity Grid](./plots/bfs/B_Complexity_Grid.png)
+![BFS Complexity Grid](./results/plots/bfs/B_Complexity_Grid.png)
 
 **Graph Description:** This plot shows BFS execution time versus the combined input size (V+E) across 10 dataset steps ranging from 348 nodes to 4,039 nodes.
 
@@ -59,7 +59,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 - Execution times range from 0.0016s (smallest) to 0.0504s (largest)
 
 #### Start-Node Invariance
-![BFS Start-Node Invariance](./plots/bfs/A_Invariance.png)
+![BFS Start-Node Invariance](./results/plots/bfs/A_Invariance.png)
 
 **Graph Description:** Statistical summary of BFS runtime variation when starting from different nodes in the same graph. Metrics include mean, standard deviation, and coefficient of variation.
 
@@ -72,7 +72,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 - Performance is reasonably consistent across different start nodes
 
 #### Order Invariance
-![BFS Order Invariance](./plots/bfs/C_Order_Invariance.png)
+![BFS Order Invariance](./results/plots/bfs/C_Order_Invariance.png)
 
 **Graph Description:** Comparison of BFS runtime on normal (original adjacency list order) vs shuffled (randomized adjacency list order) edge orderings.
 
@@ -137,7 +137,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 ### Empirical Performance
 
 #### Complexity Grid (Runtime vs Graph Size)
-![DFS Complexity Grid](./plots/dfs/B_Complexity_Grid.png)
+![DFS Complexity Grid](./results/plots/dfs/B_Complexity_Grid.png)
 
 **Graph Description:** This plot displays DFS execution time as a function of graph size (V+E) across the 10-step dataset progression.
 
@@ -150,7 +150,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 - Execution times: 0.0018s (smallest) to 0.0326s (largest)
 
 #### Start-Node Invariance
-![DFS Start-Node Invariance](./plots/dfs/A_Invariance.png)
+![DFS Start-Node Invariance](./results/plots/dfs/A_Invariance.png)
 
 **Graph Description:** Statistical analysis of DFS runtime variability across different starting nodes.
 
@@ -163,7 +163,7 @@ Results are obtained through timed runs on real-world ego-network graph files. A
 - More stable than BFS across different start points
 
 #### Order Invariance
-![DFS Order Invariance](./plots/dfs/C_Order_Invariance.png)
+![DFS Order Invariance](./results/plots/dfs/C_Order_Invariance.png)
 
 **Graph Description:** Comparison of DFS performance between original and shuffled adjacency list orderings.
 
@@ -242,7 +242,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 ### Empirical Performance
 
 #### Complexity Grid - Union by Rank
-![UFA Rank Complexity Grid](./plots/ufa_rank/B_Complexity_Grid.png)
+![UFA Rank Complexity Grid](./results/plots/ufa_rank/B_Complexity_Grid.png)
 
 **Graph Description:** Runtime of Union-Find by Rank versus graph size (V+E).
 
@@ -255,7 +255,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 - Execution times: 0.0036s (smallest) to 0.0686s (largest)
 
 #### Complexity Grid - Union by Size
-![UFA Size Complexity Grid](./plots/ufa_size/B_Complexity_Grid.png)
+![UFA Size Complexity Grid](./results/plots/ufa_size/B_Complexity_Grid.png)
 
 **Graph Description:** Runtime of Union-Find by Size versus graph size (V+E).
 
@@ -268,7 +268,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 - Comparable constant factors to UFA-Rank
 
 #### Order Invariance - Union by Rank
-![UFA Rank Order Invariance](./plots/ufa_rank/C_Order_Invariance.png)
+![UFA Rank Order Invariance](./results/plots/ufa_rank/C_Order_Invariance.png)
 
 **Graph Description:** Comparison of UFA-Rank runtime on normal vs shuffled edge orderings.
 
@@ -282,7 +282,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 - Edge order impacts tree structure and cache behavior
 
 #### Order Invariance - Union by Size
-![UFA Size Order Invariance](./plots/ufa_size/C_Order_Invariance.png)
+![UFA Size Order Invariance](./results/plots/ufa_size/C_Order_Invariance.png)
 
 **Graph Description:** Comparison of UFA-Size runtime on normal vs shuffled edge orderings.
 
@@ -356,23 +356,23 @@ This means Union-Find achieves virtually constant-time operations in practice.
 
 #### Global Network Metrics
 
-![Nodes](./plots/Metric_nodes.png)
-![Edges](./plots/Metric_edges.png)
-![Components](./plots/Metric_num_components.png)
-![GC Coverage](./plots/Metric_gc_coverage.png)
+![Nodes](./results/plots/Metric_nodes.png)
+![Edges](./results/plots/Metric_edges.png)
+![Components](./results/plots/Metric_num_components.png)
+![GC Coverage](./results/plots/Metric_gc_coverage.png)
 
 #### Algorithm Complexity Grids
-![BFS Complexity](./plots/bfs/B_Complexity_Grid.png)
-![DFS Complexity](./plots/dfs/B_Complexity_Grid.png)
-![UFA Rank Complexity](./plots/ufa_rank/B_Complexity_Grid.png)
-![UFA Size Complexity](./plots/ufa_size/B_Complexity_Grid.png)
+![BFS Complexity](./results/plots/bfs/B_Complexity_Grid.png)
+![DFS Complexity](./results/plots/dfs/B_Complexity_Grid.png)
+![UFA Rank Complexity](./results/plots/ufa_rank/B_Complexity_Grid.png)
+![UFA Size Complexity](./results/plots/ufa_size/B_Complexity_Grid.png)
 
 ---
 
 ## Network Metrics and Their Implications
 
 ### 1. Nodes (Graph Size)
-![Nodes Metric](./plots/Metric_nodes.png)
+![Nodes Metric](./results/plots/Metric_nodes.png)
 
 **Definition:** Total unique users/vertices in the network. Formally: $V = |\text{vertices}|$
 
@@ -389,7 +389,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 **Practical Consequence:** These graphs are small enough for in-memory processing but large enough to benefit from algorithmic optimization. Scale-aware batching can improve throughput when processing multiple ego-networks.
 
 ### 2. Edges (Connectivity)
-![Edges Metric](./plots/Metric_edges.png)
+![Edges Metric](./results/plots/Metric_edges.png)
 
 **Definition:** Total friendship connections in the network. Formally: $E = |\text{edges}|$
 
@@ -406,9 +406,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 **Practical Consequence:** Edge processing costs dominate CPU time. Filtering, pre-aggregation, or sampling edges can significantly reduce computation. For analytics requiring full edge exploration, choose algorithms with minimal per-edge overhead (BFS/DFS over UFA for traversal tasks).
 
 ### 3. Density
-![Density Metric](./plots/Metric_density.png)
-### 3. Density
-![Density Metric](./plots/Metric_density.png)
+![Density Metric](./results/plots/Metric_density.png)
 
 **Definition:** Ratio of existing edges to maximum possible edges. For undirected graphs: $D = \frac{2E}{V(V-1)}$
 
@@ -423,9 +421,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 **Practical Consequence:** Sparsity enables efficient storage and processing. Avoid algorithms requiring dense matrices ($O(V^2)$ space). Use sparse representations (adjacency lists) and algorithms that scale with actual edges rather than possible edges.
 
 ### 4. Average Degree
-![Average Degree Metric](./plots/Metric_avg_degree.png)
-### 4. Average Degree
-![Average Degree Metric](./plots/Metric_avg_degree.png)
+![Average Degree Metric](./results/plots/Metric_avg_degree.png)
 
 **Definition:** Average number of connections per user. Calculated as: $\bar{k} = \frac{2E}{V}$
 
@@ -440,9 +436,7 @@ This means Union-Find achieves virtually constant-time operations in practice.
 **Practical Consequence:** High average degree can cause memory pressure in BFS (large queues) and increase cache misses. Consider neighbor sampling for expensive analytics on high-degree nodes. Hub nodes (very high degree) may require special handling.
 
 ### 5. Clustering Coefficient
-![Clustering Metric](./plots/Metric_clustering.png)
-### 5. Clustering Coefficient
-![Clustering Metric](./plots/Metric_clustering.png)
+![Clustering Metric](./results/plots/Metric_clustering.png)
 
 **Definition:** Probability that two neighbors of a node are also neighbors (triangle density). Computed as: $C = \frac{3 \times \text{number of triangles}}{\text{number of connected triples}}$
 
@@ -459,7 +453,7 @@ For individual nodes, local clustering is: $C_i = \frac{2|\{e_{jk}: v_j, v_k \in
 **Practical Consequence:** Strong local community structure makes triangle-based heuristics (common neighbors, Jaccard coefficient) highly effective for link prediction and friend recommendation. Clustering also enables community detection algorithms to find coherent groups.
 
 ### 6. Number of Components
-![Components Metric](./plots/Metric_num_components.png)
+![Components Metric](./results/plots/Metric_num_components.png)
 
 **Definition:** Count of disjoint maximal connected subgraphs (separate connected components).
 
@@ -476,9 +470,7 @@ For individual nodes, local clustering is: $C_i = \frac{2|\{e_{jk}: v_j, v_k \in
 **Practical Consequence:** Optimize for single large-component performance rather than multi-component scenarios. Single-traversal analyses will cover nearly the entire network. For applications requiring isolation detection, note that fragmentation is rare in these datasets.
 
 ### 7. Giant Component Coverage
-![GC Coverage Metric](./plots/Metric_gc_coverage.png)
-### 7. Giant Component Coverage
-![GC Coverage Metric](./plots/Metric_gc_coverage.png)
+![GC Coverage Metric](./results/plots/Metric_gc_coverage.png)
 
 **Definition:** Percentage of nodes in the largest connected component. Calculated as: $\text{GC Coverage} = \frac{|GC|}{V} \times 100\%$
 
@@ -493,11 +485,7 @@ For individual nodes, local clustering is: $C_i = \frac{2|\{e_{jk}: v_j, v_k \in
 **Practical Consequence:** Information, influence, or epidemics can reach essentially everyone from any starting point. Global network properties (diameter, average path length) are meaningful since they cover nearly all nodes.
 
 ### 8. Giant Component Size (Nodes)
-![GC Size Nodes](./plots/Metric_gc_size_nodes.png)
-
-**Definition:** Number of nodes in the largest connected component.
-### 8. Giant Component Size (Nodes)
-![GC Size Nodes](./plots/Metric_gc_size_nodes.png)
+![GC Size Nodes](./results/plots/Metric_gc_size_nodes.png)
 
 **Definition:** Number of nodes in the largest connected component. Formally: $|GC| = \max_i |C_i|$ where $C_i$ are components.
 
@@ -509,11 +497,7 @@ For individual nodes, local clustering is: $C_i = \frac{2|\{e_{jk}: v_j, v_k \in
 **Practical Consequence:** No optimization available from ignoring small disconnected components. All algorithms must scale to full network size.
 
 ### 9. Diameter
-![Diameter Metric](./plots/Metric_diameter.png)
-
-**Definition:** Longest shortest path between any two nodes in the giant component.
-### 9. Diameter
-![Diameter Metric](./plots/Metric_diameter.png)
+![Diameter Metric](./results/plots/Metric_diameter.png)
 
 **Definition:** Longest shortest path between any two nodes in the giant component. Defined as: $\text{diam}(G) = \max_{u,v \in V} d(u,v)$ where $d(u,v)$ is the shortest path length.
 
@@ -526,13 +510,7 @@ For individual nodes, local clustering is: $C_i = \frac{2|\{e_{jk}: v_j, v_k \in
 **Practical Consequence:** Everyone is at most 8 steps away from everyone else. This makes the network excellent for rapid information diffusion, viral marketing, and influence propagation. Short paths enable efficient routing and recommendation.
 
 ### 10. Average Path Length
-![Average Path Metric](./plots/Metric_avg_path.png)
-
-**Definition:** Mean shortest-path distance between all pairs of nodes in the giant component.
-
-**Formula:** $\bar{d} = \frac{1}{|GC|(|GC|-1)} \sum_{u \neq v} d(u,v)$
-### 10. Average Path Length
-![Average Path Metric](./plots/Metric_avg_path.png)
+![Average Path Metric](./results/plots/Metric_avg_path.png)
 
 **Definition:** Mean shortest-path distance between all pairs of nodes in the giant component. Computed as: $\bar{d} = \frac{1}{n(n-1)} \sum_{u \neq v} d(u,v)$ where $n = |GC|$
 

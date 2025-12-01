@@ -7,7 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
 
-random.seed(67)
+RANDOM_SEED = 67
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
 
 # Include imports for dataset access
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -21,9 +23,9 @@ from ufa_by_size import run_ufa_size
 
 # Directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PLOT_DIR = os.path.join(BASE_DIR, 'plots')
-ANALYSIS_DIR = os.path.join(BASE_DIR, 'analysis')
-DATA_DIR = os.path.join(BASE_DIR, 'data')
+PLOT_DIR = os.path.join(BASE_DIR, 'results', 'plots')
+ANALYSIS_DIR = os.path.join(BASE_DIR, 'results', 'analysis')
+DATA_DIR = os.path.join(BASE_DIR, 'results', 'data')
 for d in [PLOT_DIR, ANALYSIS_DIR, DATA_DIR]: os.makedirs(d, exist_ok=True)
 for d in ['bfs', 'dfs', 'ufa_rank', 'ufa_size']: os.makedirs(os.path.join(PLOT_DIR, d), exist_ok=True)
 

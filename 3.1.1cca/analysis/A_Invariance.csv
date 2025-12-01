@@ -1,3 +1,0 @@
-Algorithm,Mean (s),StdDev (s),Coeff Var (%)
-BFS,0.01717,0.00060,3.47
-DFS,0.01879,0.00365,19.44
