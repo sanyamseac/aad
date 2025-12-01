@@ -23,6 +23,8 @@ aad/
 ├── visualize.py                      # Shared visualization utilities
 ├── aad.js_2.pdf                      # Project Proposal
 ├── complete_facebook_network.png     # Whole Network Graph
+├── report.md                         # Project report and documentation
+├── report.pdf                        # Project report in PDF format
 │
 ├── dataset/                          # SNAP Facebook Ego Networks
 │   ├── 0.edges, 0.feat, 0.circles    # Ego network files (10 users)

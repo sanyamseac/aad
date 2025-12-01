@@ -2536,6 +2536,10 @@ project_root/
 │   └── [10 ego network files]
 ├── graph.py           # Shared graph utilities
 ├── visualize.py       # Common visualization functions
+├── report.md          # Project report and documentation
+├── report.pdf         # Project report in PDF format (This file)
+├── aad.js_2.pdf       # Project's initial proposal
+├── complete_facebook_network.png     # Whole Network Graph
 └── requirements.txt   # Python dependencies
 ```
 
@@ -2788,21 +2792,16 @@ This bonus work adds significant value by exploring the frontier between classic
 
 17. **Perozzi, B., Al-Rfou, R., & Skiena, S.** (2014). "DeepWalk: Online learning of social representations." *Proceedings of the 20th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining*, 701-710. https://doi.org/10.1145/2623330.2623732
 
-18. **Mikolov, T., Sutskever, I., Chen, K., Corrado, G. S., & Dean, J.** (2013). "Distributed representations of words and phrases and their compositionality." *Advances in Neural Information Processing Systems*, 26, 3111-3119.
-
+18. **Stanford Network Analysis Platform (SNAP)**. (n.d.). *Node2Vec Page and related GitHub repositories*. https://snap.stanford.edu/node2vec/
 ### Dataset
 
 19. **Leskovec, J., & Krevl, A.** (2014). *SNAP Datasets: Stanford Large Network Dataset Collection*. http://snap.stanford.edu/data
 
-20. **McAuley, J., & Leskovec, J.** (2012). "Learning to discover social circles in ego networks." *Advances in Neural Information Processing Systems*, 25, 539-547.
-
 ### Online Resources
 
-21. **NetworkX Documentation**. (2024). https://networkx.org/documentation/stable/
+20. **NetworkX Documentation**. (2024). https://networkx.org/documentation/stable/
 
-22. **Wikipedia: Graph theory algorithms**. https://en.wikipedia.org/wiki/Category:Graph_algorithms
-
-23. **Stanford SNAP: Facebook Social Circles Dataset**. https://snap.stanford.edu/data/ego-Facebook.html
+21. **Wikipedia: Graph theory algorithms**. https://en.wikipedia.org/wiki/Category:Graph_algorithms
 
 ---
 
