@@ -401,14 +401,18 @@ def compare_with_heuristics(graph_id=1, nv_configs=None, top_k=10, sample_size=5
 def plot_hyperparameter_analysis(df, results_dir):
     """Plot hyperparameter exploration results"""
     
+    if df is None or len(df) == 0:
+        print("  Warning: No data to plot for hyperparameter analysis")
+        return
+    
     # 1. Effect of p and q
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('Node2Vec Hyperparameter Analysis', fontsize=16, fontweight='bold')
+    fig.suptitle('Node2Vec Hyperparameter Analysis (p, q)', fontsize=16, fontweight='bold')
     
-    # Fix num_walks and walk_length to median values for p,q analysis
-    median_nw = df['num_walks'].median()
-    median_wl = df['walk_length'].median()
-    pq_data = df[(df['num_walks'] == median_nw) & (df['walk_length'] == median_wl)]
+    # Fix num_walks and walk_length to specific values for p,q analysis
+    target_nw = 10  # Most balanced
+    target_wl = 80  # Most balanced
+    pq_data = df[(df['num_walks'] == target_nw) & (df['walk_length'] == target_wl)]
     
     if len(pq_data) > 0:
         # Create pivot tables for heatmaps
@@ -423,15 +427,29 @@ def plot_hyperparameter_analysis(df, results_dir):
         
         for metric_key, metric_name, ax in metrics:
             pivot = pq_data.pivot_table(values=metric_key, index='q', columns='p', aggfunc='mean')
-            im = ax.imshow(pivot.values, cmap='viridis', aspect='auto')
+            im = ax.imshow(pivot.values, cmap='viridis', aspect='auto', interpolation='nearest')
             ax.set_xticks(range(len(pivot.columns)))
             ax.set_yticks(range(len(pivot.index)))
-            ax.set_xticklabels([f'{x:.1f}' for x in pivot.columns])
-            ax.set_yticklabels([f'{x:.1f}' for x in pivot.index])
+            ax.set_xticklabels([f'{x:.1f}' for x in pivot.columns], fontsize=10)
+            ax.set_yticklabels([f'{x:.1f}' for x in pivot.index], fontsize=10)
             ax.set_xlabel('p (return parameter)', fontsize=11)
             ax.set_ylabel('q (in-out parameter)', fontsize=11)
             ax.set_title(f'{metric_name} vs p,q', fontsize=12, fontweight='bold')
-            plt.colorbar(im, ax=ax)
+            cbar = plt.colorbar(im, ax=ax)
+            cbar.ax.tick_params(labelsize=9)
+            
+            # Add values in cells
+            for i in range(len(pivot.index)):
+                for j in range(len(pivot.columns)):
+                    value = pivot.values[i, j]
+                    if not np.isnan(value):
+                        text_color = 'white' if value < pivot.values.mean() else 'black'
+                        ax.text(j, i, f'{value:.3f}', ha='center', va='center',
+                               color=text_color, fontsize=8, fontweight='bold')
+        
+        print(f"  Generated p,q heatmaps with {len(pq_data)} data points")
+    else:
+        print(f"  Warning: No data for num_walks={target_nw}, walk_length={target_wl}")
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_hyperparameter_pq.png'), dpi=300, bbox_inches='tight')
@@ -439,10 +457,10 @@ def plot_hyperparameter_analysis(df, results_dir):
     
     # 2. Effect of num_walks and walk_length
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('Node2Vec Walk Parameters Analysis', fontsize=16, fontweight='bold')
+    fig.suptitle('Node2Vec Walk Parameters Analysis (p=1.0, q=1.0)', fontsize=16, fontweight='bold')
     
-    # Fix p and q to 0.7 for walk analysis
-    walk_data = df[(df['p'] == 0.7) & (df['q'] == 0.7)]
+    # Fix p and q to 1.0 (DeepWalk-like) for walk analysis
+    walk_data = df[(df['p'] == 1.0) & (df['q'] == 1.0)]
     
     if len(walk_data) > 0:
         metrics = [
@@ -458,13 +476,18 @@ def plot_hyperparameter_analysis(df, results_dir):
             for wl in sorted(walk_data['walk_length'].unique()):
                 data = walk_data[walk_data['walk_length'] == wl]
                 grouped = data.groupby('num_walks')[metric_key].mean()
-                ax.plot(grouped.index, grouped.values, marker='o', label=f'walk_len={wl}', linewidth=2)
+                ax.plot(grouped.index, grouped.values, marker='o', label=f'walk_len={wl}', 
+                       linewidth=2, markersize=8)
             
             ax.set_xlabel('Number of Walks', fontsize=11)
             ax.set_ylabel(metric_name, fontsize=11)
             ax.set_title(f'{metric_name} vs Walk Parameters', fontsize=12, fontweight='bold')
-            ax.legend(fontsize=9)
+            ax.legend(fontsize=10)
             ax.grid(True, alpha=0.3)
+        
+        print(f"  Generated walk parameter plots with {len(walk_data)} data points")
+    else:
+        print("  Warning: No data for p=1.0, q=1.0")
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_hyperparameter_walks.png'), dpi=300, bbox_inches='tight')
@@ -474,6 +497,10 @@ def plot_hyperparameter_analysis(df, results_dir):
 def plot_scalability_analysis(df, results_dir):
     """Plot Node2Vec scalability results"""
     
+    if df is None or len(df) == 0:
+        print("  Warning: No data to plot for scalability analysis")
+        return
+    
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     fig.suptitle('Node2Vec Scalability Analysis', fontsize=16, fontweight='bold')
     
@@ -481,7 +508,8 @@ def plot_scalability_analysis(df, results_dir):
     
     # 1. Total Runtime
     ax = axes[0, 0]
-    ax.plot(df_sorted['nodes'], df_sorted['total_runtime'], marker='o', color='purple', linewidth=2)
+    ax.plot(df_sorted['nodes'], df_sorted['total_runtime'], marker='o', color='purple', 
+            linewidth=2, markersize=8)
     ax.set_xlabel('Number of Nodes', fontsize=11)
     ax.set_ylabel('Total Runtime (s)', fontsize=11)
     ax.set_title('Total Runtime vs Graph Size', fontsize=12, fontweight='bold')
@@ -489,17 +517,20 @@ def plot_scalability_analysis(df, results_dir):
     
     # 2. Training vs Inference Time
     ax = axes[0, 1]
-    ax.plot(df_sorted['nodes'], df_sorted['train_time'], marker='s', label='Training', linewidth=2)
-    ax.plot(df_sorted['nodes'], df_sorted['inference_time'], marker='^', label='Inference', linewidth=2)
+    ax.plot(df_sorted['nodes'], df_sorted['train_time'], marker='s', label='Training', 
+            linewidth=2, markersize=8)
+    ax.plot(df_sorted['nodes'], df_sorted['inference_time'], marker='^', label='Inference', 
+            linewidth=2, markersize=8)
     ax.set_xlabel('Number of Nodes', fontsize=11)
     ax.set_ylabel('Time (s)', fontsize=11)
     ax.set_title('Training vs Inference Time', fontsize=12, fontweight='bold')
-    ax.legend()
+    ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
     
     # 3. Memory Usage
     ax = axes[0, 2]
-    ax.plot(df_sorted['nodes'], df_sorted['memory_mb'], marker='d', color='red', linewidth=2)
+    ax.plot(df_sorted['nodes'], df_sorted['memory_mb'], marker='d', color='red', 
+            linewidth=2, markersize=8)
     ax.set_xlabel('Number of Nodes', fontsize=11)
     ax.set_ylabel('Memory (MB)', fontsize=11)
     ax.set_title('Memory Usage vs Graph Size', fontsize=12, fontweight='bold')
@@ -507,7 +538,8 @@ def plot_scalability_analysis(df, results_dir):
     
     # 4. F1 Score
     ax = axes[1, 0]
-    ax.plot(df_sorted['nodes'], df_sorted['f1_score'], marker='o', color='green', linewidth=2)
+    ax.plot(df_sorted['nodes'], df_sorted['f1_score'], marker='o', color='green', 
+            linewidth=2, markersize=8)
     ax.set_xlabel('Number of Nodes', fontsize=11)
     ax.set_ylabel('F1 Score', fontsize=11)
     ax.set_title('F1 Score vs Graph Size', fontsize=12, fontweight='bold')
@@ -515,7 +547,8 @@ def plot_scalability_analysis(df, results_dir):
     
     # 5. ROC-AUC
     ax = axes[1, 1]
-    ax.plot(df_sorted['nodes'], df_sorted['roc_auc'], marker='s', color='blue', linewidth=2)
+    ax.plot(df_sorted['nodes'], df_sorted['roc_auc'], marker='s', color='blue', 
+            linewidth=2, markersize=8)
     ax.set_xlabel('Number of Nodes', fontsize=11)
     ax.set_ylabel('ROC-AUC', fontsize=11)
     ax.set_title('ROC-AUC vs Graph Size', fontsize=12, fontweight='bold')
@@ -523,11 +556,14 @@ def plot_scalability_analysis(df, results_dir):
     
     # 6. MAP
     ax = axes[1, 2]
-    ax.plot(df_sorted['nodes'], df_sorted['map'], marker='^', color='orange', linewidth=2)
+    ax.plot(df_sorted['nodes'], df_sorted['map'], marker='^', color='orange', 
+            linewidth=2, markersize=8)
     ax.set_xlabel('Number of Nodes', fontsize=11)
     ax.set_ylabel('MAP', fontsize=11)
     ax.set_title('MAP vs Graph Size', fontsize=12, fontweight='bold')
     ax.grid(True, alpha=0.3)
+    
+    print(f"  Generated scalability plots with {len(df_sorted)} data points")
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_scalability.png'), dpi=300, bbox_inches='tight')
@@ -536,6 +572,10 @@ def plot_scalability_analysis(df, results_dir):
 
 def plot_comparison_with_heuristics(df, results_dir):
     """Plot comparison between Node2Vec and heuristic algorithms"""
+    
+    if df is None or len(df) == 0:
+        print("  Warning: No data to plot for comparison analysis")
+        return
     
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     fig.suptitle('Node2Vec vs Heuristic Algorithms Comparison', fontsize=16, fontweight='bold')
@@ -566,6 +606,8 @@ def plot_comparison_with_heuristics(df, results_dir):
             if 'Node2Vec' in algo:
                 bars[i].set_edgecolor('red')
                 bars[i].set_linewidth(2)
+    
+    print(f"  Generated comparison plots with {len(algorithms)} algorithms")
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_vs_heuristics.png'), dpi=300, bbox_inches='tight')
@@ -653,13 +695,17 @@ def main():
     if hyperparam_df is not None and len(hyperparam_df) > 0:
         hyperparam_csv = os.path.join(results_dir, 'nv_hyperparameter_exploration.csv')
         hyperparam_df.to_csv(hyperparam_csv, index=False)
-        print(f"\nHyperparameter results saved to: {hyperparam_csv}")
+        print(f"\nResults saved: {os.path.basename(hyperparam_csv)}")
         
         print("\nTop 5 configurations by F1 Score:")
         top_configs = hyperparam_df.nlargest(5, 'f1_score')[['p', 'q', 'num_walks', 'walk_length', 'f1_score', 'roc_auc', 'map', 'total_runtime']]
         print(top_configs.to_string(index=False))
         
+        print("\nGenerating hyperparameter plots...")
         plot_hyperparameter_analysis(hyperparam_df, results_dir)
+        print("  ✓ Hyperparameter plots saved")
+    else:
+        print("\n  Warning: No hyperparameter results to save")
     
     # 2. Scalability Analysis
     print("\n" + "="*80)
@@ -683,8 +729,11 @@ def main():
         scalability_df.to_csv(scalability_csv, index=False)
         print(f"\nResults saved: {os.path.basename(scalability_csv)}")
         
-        print("Generating plots...")
+        print("\nGenerating scalability plots...")
         plot_scalability_analysis(scalability_df, results_dir)
+        print("  ✓ Scalability plots saved")
+    else:
+        print("\n  Warning: No scalability results to save")
     
     # 3. Comparison with Heuristics
     print("\n" + "="*80)
@@ -713,8 +762,11 @@ def main():
         display_cols = ['algorithm', 'precision', 'recall', 'f1_score', 'roc_auc', 'map', 'total_runtime', 'memory_mb']
         print(comparison_df[display_cols].to_string(index=False))
         
-        print("\nGenerating plots...")
+        print("\nGenerating comparison plots...")
         plot_comparison_with_heuristics(comparison_df, results_dir)
+        print("  ✓ Comparison plots saved")
+    else:
+        print("\n  Warning: No comparison results to save")
     
     print("\n" + "="*80)
     print("Analysis Complete")
