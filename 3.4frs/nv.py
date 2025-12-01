@@ -49,7 +49,6 @@ class Graph():
         G = self.G
         walks = []
         nodes = list(G.nodes())
-        print('Simulating random walks...')
         for walk_iter in tqdm(range(num_walks), desc="Walk iterations"):
             random.shuffle(nodes)
             for node in nodes:
@@ -206,7 +205,6 @@ def train_node2vec_model(G, p=0.7, q=0.7, num_walks=10, walk_length=80):
 	Returns:
 		Trained Word2Vec model
 	'''
-	print(f"Training Node2Vec with p={p}, q={q}")
 	graph_obj = Graph(G, p, q)
 	graph_obj.preprocess_transition_probs()
 	walks = graph_obj.simulate_walks(num_walks, walk_length)

@@ -8,19 +8,22 @@ Comprehensive Node2Vec Analysis
 import os
 import sys
 import time
+import gc
+import tracemalloc
+import multiprocessing
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend for thread safety
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-import psutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import questionary
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 import networkx as nx
 from itertools import product
+from tqdm import tqdm
 import warnings
 
-# Suppress threading warnings
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -40,44 +43,32 @@ def evaluate_node2vec_config(graph_data, p, q, num_walks, walk_length, top_k=10,
     """Evaluate Node2Vec with specific hyperparameters"""
     graph_id, nx_G, train_G, test_edges_pos, test_edges_neg, sample_nodes = graph_data
     
-    config_name = f"p={p}_q={q}_nw={num_walks}_wl={walk_length}"
+    gc.collect()
+    tracemalloc.start()
     
-    process = psutil.Process()
-    process.memory_info()
-    start_memory = process.memory_info().rss / 1024 / 1024
-    
-    # Training time
     train_start = time.time()
     try:
         model = train_node2vec_model(train_G, p=p, q=q, num_walks=num_walks, walk_length=walk_length)
         train_time = time.time() - train_start
     except Exception as e:
-        print(f"Error training Node2Vec with {config_name}: {e}")
+        tracemalloc.stop()
         return None
     
-    # Inference time
     inference_start = time.time()
-    all_predictions = []
-    ranked_predictions = []
-    peak_memory = start_memory
+    all_predictions, ranked_predictions = [], []
     
     for node in sample_nodes:
         preds = nv_recommend(model, node, train_G, top_k)
         all_predictions.extend([(node, pred_node) for pred_node, _ in preds])
         ranked_predictions.append(preds)
-        # Track peak memory during inference
-        current_memory = process.memory_info().rss / 1024 / 1024
-        peak_memory = max(peak_memory, current_memory)
     
     inference_time = time.time() - inference_start
     total_runtime = train_time + inference_time
     
-    # Use peak memory increment as the memory usage metric
-    memory_used = max(0.1, peak_memory - start_memory)
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    memory_used = peak / 1024 / 1024
     
-    # Calculate performance metrics
-    # Note: get_edge_score takes (model, edge), but calculate_performance_metrics 
-    # expects score_func(G, u, v), so we need a wrapper
     def score_func_wrapper(G, u, v):
         return get_edge_score(model, (u, v))
     
@@ -106,13 +97,9 @@ def evaluate_node2vec_config(graph_data, p, q, num_walks, walk_length, top_k=10,
 
 def hyperparameter_exploration(graph_id=1, top_k=10, sample_size=50,
                               p_values=None, q_values=None, 
-                              num_walks_values=None, walk_length_values=None):
+                              num_walks_values=None, walk_length_values=None,
+                              execution_mode='parallel', max_workers=None):
     """Explore different hyperparameter combinations"""
-    print("="*80)
-    print("NODE2VEC HYPERPARAMETER EXPLORATION")
-    print("="*80)
-    
-    # Use provided values or defaults
     if p_values is None:
         p_values = [0.5, 0.7, 1.0, 1.5, 2.0]
     if q_values is None:
@@ -122,105 +109,167 @@ def hyperparameter_exploration(graph_id=1, top_k=10, sample_size=50,
     if walk_length_values is None:
         walk_length_values = [40, 80, 120]
     
-    # Load graph
     graph_data = load_and_prepare_graph(graph_id, sample_size)
     if not graph_data:
-        print(f"Failed to load graph {graph_id}")
         return None
     
     print(f"\nGraph {graph_id}: {graph_data[1].number_of_nodes()} nodes, {graph_data[1].number_of_edges()} edges")
+    print(f"Parameter grid: p={len(p_values)}, q={len(q_values)}, num_walks={len(num_walks_values)}, walk_length={len(walk_length_values)}")
     
-    # Define parameter grid
-    print(f"\nParameter grid:")
-    print(f"  p: {p_values}")
-    print(f"  q: {q_values}")
-    print(f"  num_walks: {num_walks_values}")
-    print(f"  walk_length: {walk_length_values}")
-    print(f"  Total configurations: {len(p_values) * len(q_values) * len(num_walks_values) * len(walk_length_values)}")
-    
-    # Generate all combinations
     configs = list(product(p_values, q_values, num_walks_values, walk_length_values))
-    
-    print(f"\nRunning {len(configs)} configurations in parallel...")
+    print(f"Total configurations: {len(configs)}")
+    print(f"Execution mode: {execution_mode.upper()}")
     
     results = []
-    # Reduce workers to avoid thread conflicts
-    max_workers = min(4, len(configs))
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(evaluate_node2vec_config, graph_data, p, q, nw, wl, top_k, sample_size): (p, q, nw, wl)
-            for p, q, nw, wl in configs
-        }
+    
+    if execution_mode == 'sequential':
+        print("\nRunning sequential evaluation...\n")
+        pbar = tqdm(configs, desc="Hyperparameter search", ncols=80,
+                   bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
         
-        completed = 0
-        total = len(futures)
-        for future in as_completed(futures):
-            config = futures[future]
+        for p, q, nw, wl in pbar:
             try:
-                result = future.result(timeout=300)  # 5 minute timeout
+                result = evaluate_node2vec_config(graph_data, p, q, nw, wl, top_k, sample_size)
                 if result:
                     results.append(result)
-                completed += 1
-                if completed % 10 == 0 or completed == total:
-                    print(f"  Progress: {completed}/{total} configurations completed")
-            except TimeoutError:
-                print(f"  Timeout for config {config}")
-                completed += 1
+                pbar.set_postfix_str(f"p={p:.1f}, q={q:.1f}")
             except Exception as e:
-                print(f"  Error with config {config}: {e}")
+                pbar.write(f"  Warning: Error with config p={p}, q={q}: {str(e)[:50]}")
+    else:
+        # Parallel execution with ProcessPoolExecutor for true parallelism
+        if max_workers is None:
+            max_workers = multiprocessing.cpu_count()
+        else:
+            max_workers = min(max_workers, len(configs))
+        
+        print(f"Running parallel evaluation with {max_workers} workers (ProcessPoolExecutor)...\n")
+        
+        try:
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all tasks
+                futures = {
+                    executor.submit(evaluate_node2vec_config, graph_data, p, q, nw, wl, top_k, sample_size): (p, q, nw, wl)
+                    for p, q, nw, wl in configs
+                }
+                
+                pbar = tqdm(total=len(futures), desc="Hyperparameter search", ncols=80,
+                           bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
+                
+                for future in as_completed(futures):
+                    config = futures[future]
+                    try:
+                        result = future.result(timeout=300)
+                        if result:
+                            results.append(result)
+                        pbar.set_postfix_str(f"p={config[0]:.1f}, q={config[1]:.1f}")
+                    except TimeoutError:
+                        pbar.write(f"  Warning: Timeout for config p={config[0]}, q={config[1]}")
+                    except Exception as e:
+                        pbar.write(f"  Warning: Error with config p={config[0]}, q={config[1]}: {str(e)[:50]}")
+                    pbar.update(1)
+                
+                pbar.close()
+        except Exception as e:
+            print(f"\nProcessPoolExecutor failed: {e}")
+            print("Falling back to ThreadPoolExecutor...\n")
+            
+            # Fallback to ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(evaluate_node2vec_config, graph_data, p, q, nw, wl, top_k, sample_size): (p, q, nw, wl)
+                    for p, q, nw, wl in configs
+                }
+                
+                pbar = tqdm(total=len(futures), desc="Hyperparameter search", ncols=80,
+                           bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
+                
+                for future in as_completed(futures):
+                    config = futures[future]
+                    try:
+                        result = future.result(timeout=300)
+                        if result:
+                            results.append(result)
+                        pbar.set_postfix_str(f"p={config[0]:.1f}, q={config[1]:.1f}")
+                    except TimeoutError:
+                        pbar.write(f"  Warning: Timeout for config p={config[0]}, q={config[1]}")
+                    except Exception as e:
+                        pbar.write(f"  Warning: Error with config p={config[0]}, q={config[1]}: {str(e)[:50]}")
+                    pbar.update(1)
+                
+                pbar.close()
     
     return pd.DataFrame(results)
 
 
 def scalability_analysis(graph_ids=None, p=0.7, q=0.7, num_walks=10, walk_length=80):
     """Analyze Node2Vec scalability across different graph sizes"""
-    print("\n" + "="*80)
-    print("NODE2VEC SCALABILITY ANALYSIS")
-    print("="*80)
-    
     if graph_ids is None:
         graph_ids = list(range(1, 11))
     
     print(f"\nFixed hyperparameters: p={p}, q={q}, num_walks={num_walks}, walk_length={walk_length}")
-    print(f"Testing on {len(graph_ids)} graphs...")
     
     results = []
     tasks = []
     
-    for graph_id in graph_ids:
+    print("Loading graphs...")
+    for graph_id in tqdm(graph_ids, desc="Loading", ncols=80, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}'):
         try:
             graph_data = load_and_prepare_graph(graph_id, sample_size=50)
             if graph_data:
                 tasks.append((graph_data, p, q, num_walks, walk_length, 10, 50))
-                print(f"  Graph {graph_id}: {graph_data[1].number_of_nodes()} nodes, {graph_data[1].number_of_edges()} edges")
         except Exception as e:
-            print(f"  Error loading graph {graph_id}: {e}")
+            print(f"  Warning: Error loading graph {graph_id}: {str(e)[:50]}")
     
-    # Reduce worker count to avoid thread conflicts
-    max_workers = min(3, len(tasks))  # Limit to 3 parallel workers
-    print(f"\nRunning with {max_workers} parallel workers...")
+    max_workers = min(multiprocessing.cpu_count(), len(tasks))
+    print(f"\nRunning evaluations with {max_workers} parallel workers (ProcessPoolExecutor)...\n")
     
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(evaluate_node2vec_config, *task): task for task in tasks}
+    try:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(evaluate_node2vec_config, *task): task[0][0] for task in tasks}
+            
+            pbar = tqdm(total=len(futures), desc="Scalability analysis", ncols=80,
+                       bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
+            
+            for future in as_completed(futures):
+                graph_id = futures[future]
+                try:
+                    result = future.result(timeout=600)
+                    if result:
+                        results.append(result)
+                        pbar.set_postfix_str(f"Graph {graph_id}: {result['nodes']} nodes")
+                except TimeoutError:
+                    pbar.write(f"  Warning: Timeout for graph {graph_id}")
+                except Exception as e:
+                    pbar.write(f"  Warning: Error for graph {graph_id}: {str(e)[:50]}")
+                pbar.update(1)
+            
+            pbar.close()
+    except Exception as e:
+        print(f"\nProcessPoolExecutor failed: {e}")
+        print("Falling back to ThreadPoolExecutor...\n")
         
-        completed = 0
-        total = len(futures)
-        for future in as_completed(futures):
-            try:
-                result = future.result(timeout=600)  # 10 minute timeout per graph
-                if result:
-                    results.append(result)
-                    print(f"  ✓ Progress: {completed + 1}/{total} graphs completed successfully")
-                completed += 1
-            except TimeoutError:
-                print(f"  ✗ Timeout after 10 minutes")
-                completed += 1
-            except Exception as e:
-                print(f"  ✗ Error: {str(e)[:100]}")
-                completed += 1
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(evaluate_node2vec_config, *task): task[0][0] for task in tasks}
+            
+            pbar = tqdm(total=len(futures), desc="Scalability analysis", ncols=80,
+                       bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
+            
+            for future in as_completed(futures):
+                graph_id = futures[future]
+                try:
+                    result = future.result(timeout=600)
+                    if result:
+                        results.append(result)
+                        pbar.set_postfix_str(f"Graph {graph_id}: {result['nodes']} nodes")
+                except TimeoutError:
+                    pbar.write(f"  Warning: Timeout for graph {graph_id}")
+                except Exception as e:
+                    pbar.write(f"  Warning: Error for graph {graph_id}: {str(e)[:50]}")
+                pbar.update(1)
+            
+            pbar.close()
     
     if len(results) == 0:
-        print("\nWarning: No results collected!")
         return None
     
     return pd.DataFrame(results)
@@ -228,10 +277,6 @@ def scalability_analysis(graph_ids=None, p=0.7, q=0.7, num_walks=10, walk_length
 
 def compare_with_heuristics(graph_id=1, nv_configs=None, top_k=10, sample_size=50):
     """Compare Node2Vec with heuristic algorithms"""
-    print("\n" + "="*80)
-    print("NODE2VEC VS HEURISTIC ALGORITHMS COMPARISON")
-    print("="*80)
-    
     from analysis import (
         cm_recommend, compute_common_neighbors_score,
         aa_recommend, compute_adamic_adar_score,
@@ -247,7 +292,6 @@ def compare_with_heuristics(graph_id=1, nv_configs=None, top_k=10, sample_size=5
     
     print(f"\nGraph {graph_id}: {graph_data[1].number_of_nodes()} nodes, {graph_data[1].number_of_edges()} edges")
     
-    # Test different Node2Vec configurations
     if nv_configs is None:
         nv_configs = [
             (0.7, 0.7, 10, 80, "Balanced (p=0.7, q=0.7)"),
@@ -256,16 +300,15 @@ def compare_with_heuristics(graph_id=1, nv_configs=None, top_k=10, sample_size=5
             (2.0, 0.5, 10, 80, "DFS-like (p=2.0, q=0.5)")
         ]
     
-    # Evaluate Node2Vec configs
     print("\nEvaluating Node2Vec configurations...")
     nv_results = []
-    for p, q, nw, wl, desc in nv_configs:
+    for p, q, nw, wl, desc in tqdm(nv_configs, desc="Node2Vec", ncols=80, 
+                                    bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}'):
         result = evaluate_node2vec_config(graph_data, p, q, nw, wl, top_k=top_k, sample_size=sample_size)
         if result:
             result['algorithm'] = f"Node2Vec: {desc}"
             nv_results.append(result)
     
-    # Evaluate heuristic algorithms
     print("\nEvaluating heuristic algorithms...")
     heuristic_algos = [
         ("Common Neighbors", cm_recommend, compute_common_neighbors_score),
@@ -276,11 +319,12 @@ def compare_with_heuristics(graph_id=1, nv_configs=None, top_k=10, sample_size=5
     ]
     
     heuristic_results = []
-    for algo_name, recommend_func, score_func in heuristic_algos:
+    for algo_name, recommend_func, score_func in tqdm(heuristic_algos, desc="Heuristics", ncols=80,
+                                                       bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}'):
         result = evaluate_algorithm_on_graph(graph_data, algo_name, recommend_func, score_func, top_k=top_k, sample_size=sample_size)
         if result:
             result['algorithm'] = algo_name
-            result['train_time'] = 0.0  # Heuristics don't need training
+            result['train_time'] = 0.0
             result['inference_time'] = result['runtime']
             result['total_runtime'] = result['runtime']
             heuristic_results.append(result)
@@ -326,7 +370,6 @@ def plot_hyperparameter_analysis(df, results_dir):
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_hyperparameter_pq.png'), dpi=300, bbox_inches='tight')
-    print(f"Saved: nv_hyperparameter_pq.png")
     plt.close()
     
     # 2. Effect of num_walks and walk_length
@@ -360,7 +403,6 @@ def plot_hyperparameter_analysis(df, results_dir):
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_hyperparameter_walks.png'), dpi=300, bbox_inches='tight')
-    print(f"Saved: nv_hyperparameter_walks.png")
     plt.close()
 
 
@@ -424,7 +466,6 @@ def plot_scalability_analysis(df, results_dir):
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_scalability.png'), dpi=300, bbox_inches='tight')
-    print(f"Saved: nv_scalability.png")
     plt.close()
 
 
@@ -463,14 +504,30 @@ def plot_comparison_with_heuristics(df, results_dir):
     
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'nv_vs_heuristics.png'), dpi=300, bbox_inches='tight')
-    print(f"Saved: nv_vs_heuristics.png")
     plt.close()
 
 
 def main():
+    print("\n" + "="*80)
+    print("  COMPREHENSIVE NODE2VEC ANALYSIS")
+    print("  Performance • Scalability • Hyperparameter Exploration")
     print("="*80)
-    print("COMPREHENSIVE NODE2VEC ANALYSIS")
-    print("="*80)
+    
+    # Ask user for execution mode
+    execution_mode = questionary.select(
+        "Select execution mode for hyperparameter exploration:",
+        choices=[
+            questionary.Choice("Parallel (faster, uses all CPU cores)", value="parallel"),
+            questionary.Choice("Sequential (slower, more memory-accurate)", value="sequential")
+        ]
+    ).ask()
+    
+    max_workers = None
+    if execution_mode == 'parallel':
+        max_workers = multiprocessing.cpu_count()
+        print(f"\nUsing parallel execution with {max_workers} workers")
+    else:
+        print("\nUsing sequential execution")
     
     # ===================== CONFIGURATION CONSTANTS =====================
     # Hyperparameter ranges for exploration
@@ -504,16 +561,19 @@ def main():
     results_dir = os.path.join(os.path.dirname(__file__), 'results')
     os.makedirs(results_dir, exist_ok=True)
     
-    # 1. Hyperparameter Exploration
+    # 1. Hyperparameter Exploration (COMMENTED OUT - takes very long)
+    # Uncomment below to run hyperparameter exploration with execution mode selection
     print("\n" + "="*80)
-    print("PHASE 1: HYPERPARAMETER EXPLORATION")
-    print("="*80)
-    print(f"Configuration:")
+    print("PHASE 1: Hyperparameter Exploration (SKIPPED)")
+    print("-" * 80)
+    print(f"Configuration (if enabled):")
     print(f"  p values: {P_VALUES}")
     print(f"  q values: {Q_VALUES}")
     print(f"  num_walks values: {NUM_WALKS_VALUES}")
     print(f"  walk_length values: {WALK_LENGTH_VALUES}")
     print(f"  Total combinations: {len(P_VALUES) * len(Q_VALUES) * len(NUM_WALKS_VALUES) * len(WALK_LENGTH_VALUES)}")
+    print("  Status: Currently commented out to save time")
+    print("  To enable: Uncomment lines below in the code")
     
     # Pass constants to hyperparameter_exploration
     # hyperparam_df = hyperparameter_exploration(
@@ -523,7 +583,9 @@ def main():
     #     p_values=P_VALUES,
     #     q_values=Q_VALUES,
     #     num_walks_values=NUM_WALKS_VALUES,
-    #     walk_length_values=WALK_LENGTH_VALUES
+    #     walk_length_values=WALK_LENGTH_VALUES,
+    #     execution_mode=execution_mode,
+    #     max_workers=max_workers
     # )
     
     # if hyperparam_df is not None and len(hyperparam_df) > 0:
@@ -539,8 +601,8 @@ def main():
     
     # 2. Scalability Analysis
     print("\n" + "="*80)
-    print("PHASE 2: SCALABILITY ANALYSIS")
-    print("="*80)
+    print("PHASE 2: Scalability Analysis")
+    print("-" * 80)
     print(f"Configuration:")
     print(f"  Graph IDs: {SCALABILITY_GRAPH_IDS}")
     print(f"  Fixed p={SCALABILITY_P}, q={SCALABILITY_Q}")
@@ -557,19 +619,20 @@ def main():
     if scalability_df is not None and len(scalability_df) > 0:
         scalability_csv = os.path.join(results_dir, 'nv_scalability.csv')
         scalability_df.to_csv(scalability_csv, index=False)
-        print(f"\nScalability results saved to: {scalability_csv}")
+        print(f"\nResults saved: {os.path.basename(scalability_csv)}")
         
+        print("Generating plots...")
         plot_scalability_analysis(scalability_df, results_dir)
     
     # 3. Comparison with Heuristics
     print("\n" + "="*80)
-    print("PHASE 3: COMPARISON WITH HEURISTIC ALGORITHMS")
-    print("="*80)
+    print("PHASE 3: Comparison with Heuristic Algorithms")
+    print("-" * 80)
     print(f"Configuration:")
     print(f"  Comparison graph ID: {COMPARISON_GRAPH_ID}")
-    print(f"  Node2Vec configurations to test: {len(COMPARISON_CONFIGS)}")
+    print(f"  Node2Vec configurations: {len(COMPARISON_CONFIGS)}")
     for p, q, nw, wl, desc in COMPARISON_CONFIGS:
-        print(f"    - {desc}: p={p}, q={q}, num_walks={nw}, walk_length={wl}")
+        print(f"    {desc}: p={p}, q={q}, num_walks={nw}, walk_length={wl}")
     
     comparison_df = compare_with_heuristics(
         graph_id=COMPARISON_GRAPH_ID,
@@ -581,18 +644,20 @@ def main():
     if comparison_df is not None and len(comparison_df) > 0:
         comparison_csv = os.path.join(results_dir, 'nv_vs_heuristics.csv')
         comparison_df.to_csv(comparison_csv, index=False)
-        print(f"\nComparison results saved to: {comparison_csv}")
+        print(f"\nResults saved: {os.path.basename(comparison_csv)}")
         
         print("\nPerformance Comparison:")
+        print("=" * 80)
         display_cols = ['algorithm', 'precision', 'recall', 'f1_score', 'roc_auc', 'map', 'total_runtime', 'memory_mb']
         print(comparison_df[display_cols].to_string(index=False))
         
+        print("\nGenerating plots...")
         plot_comparison_with_heuristics(comparison_df, results_dir)
     
     print("\n" + "="*80)
-    print("NODE2VEC ANALYSIS COMPLETE!")
+    print("Analysis Complete")
     print("="*80)
-    print(f"\nAll results and plots saved to: {results_dir}")
+    print(f"Results directory: {results_dir}\n")
     
     return {
         # 'hyperparameters': hyperparam_df,
